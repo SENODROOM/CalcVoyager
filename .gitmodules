@@ -1,0 +1,3 @@
+[submodule "Latex Convertor"]
+	path = src/utils/Latex Convertor
+	url = https://github.com/SENODROOM/LaTeX-To-MathJs.git
