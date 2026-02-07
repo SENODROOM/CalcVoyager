@@ -193,6 +193,7 @@ const Homepage = () => {
     };
 
     // Convert LaTeX to math.js expression
+    // Convert LaTeX to math.js expression
     const latexToMathJs = (latex) => {
         let expr = latex.trim();
 
@@ -244,6 +245,19 @@ const Homepage = () => {
         expr = expr.replace(/\\sin/g, 'sin');
         expr = expr.replace(/\\cos/g, 'cos');
 
+        // IMPORTANT: Handle trig functions with space and variable BEFORE removing spaces
+        expr = expr.replace(/tan\s+([a-zA-Z])/g, 'tan($1)');
+        expr = expr.replace(/sin\s+([a-zA-Z])/g, 'sin($1)');
+        expr = expr.replace(/cos\s+([a-zA-Z])/g, 'cos($1)');
+        expr = expr.replace(/atan\s+([a-zA-Z])/g, 'atan($1)');
+        expr = expr.replace(/asin\s+([a-zA-Z])/g, 'asin($1)');
+        expr = expr.replace(/acos\s+([a-zA-Z])/g, 'acos($1)');
+        expr = expr.replace(/log\s+([a-zA-Z])/g, 'log($1)');
+        expr = expr.replace(/log10\s+([a-zA-Z])/g, 'log10($1)');
+        expr = expr.replace(/sqrt\s+([a-zA-Z])/g, 'sqrt($1)');
+        expr = expr.replace(/exp\s+([a-zA-Z])/g, 'exp($1)');
+        expr = expr.replace(/abs\s+([a-zA-Z])/g, 'abs($1)');
+
         // Handle logarithms
         expr = expr.replace(/\\ln/g, 'log');
         expr = expr.replace(/\\log/g, 'log10');
@@ -286,11 +300,13 @@ const Homepage = () => {
         expr = expr.replace(/\{/g, '(');
         expr = expr.replace(/\}/g, ')');
 
+        // Remove extra spaces BEFORE processing implicit multiplication
+        expr = expr.replace(/\s+/g, '');
+
         // SMARTER APPROACH: Add multiplication between adjacent variables, but NOT within function names
         const knownFuncs = ['sin', 'cos', 'tan', 'asin', 'acos', 'atan', 'log', 'log10', 'sqrt', 'exp', 'abs', 'pi'];
 
         // Step 1: Add implicit multiplication between consecutive single-letter variables
-        // Use negative lookahead/lookbehind to avoid matching inside known functions
         let newExpr = '';
         let i = 0;
 
@@ -387,9 +403,6 @@ const Homepage = () => {
 
         // Clean up any remaining LaTeX backslashes
         expr = expr.replace(/\\/g, '');
-
-        // Remove extra spaces
-        expr = expr.replace(/\s+/g, '');
 
         return expr;
     };
