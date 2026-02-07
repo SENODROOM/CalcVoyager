@@ -166,26 +166,25 @@ const Homepage = () => {
     const evaluateSpecialValue = (str) => {
         if (!str) return 0;
 
-        // Handle variable references (like "y" in "x=y")
-        if (str.length === 1 && /[a-zA-Z]/.test(str)) {
-            // This is a variable reference, return as is for symbolic handling
-            return str;
-        }
-
         let expr = str
             .replace(/\\pi/g, 'pi')
             .replace(/π/g, 'pi')
             .replace(/\\ln/g, 'log')
             .replace(/\\log/g, 'log10')
             .replace(/\\frac\{([^}]+)\}\{([^}]+)\}/g, '($1)/($2)')
-            .replace(/\\sqrt\{([^}]+)\}/g, 'sqrt($1)')
+            .replace(/\\sqrt\{([^}]+)\}/g, '(sqrt($1))')
             .replace(/\\sqrt\[([^\]]+)\]\{([^}]+)\}/g, '($2)^(1/($1))')
             .replace(/e\^\{([^}]+)\}/g, 'exp($1)')
             .replace(/e\^/g, 'exp');
 
         try {
             const result = math.evaluate(expr);
-            return typeof result === 'number' ? result : 0;
+            if (typeof result === 'number') {
+                return result;
+            }
+            // If it's not a number, try parsing as float
+            const num = parseFloat(str);
+            return isNaN(num) ? 0 : num;
         } catch {
             // Try parsing as a simple number
             const num = parseFloat(str);
@@ -195,58 +194,206 @@ const Homepage = () => {
 
     // Convert LaTeX to math.js expression
     const latexToMathJs = (latex) => {
-        let expr = latex
-            // Handle fractions
-            .replace(/\\frac\{([^}]+)\}\{([^}]+)\}/g, '(($1)/($2))')
-            // Handle roots
-            .replace(/\\sqrt\[([^\]]+)\]\{([^}]+)\}/g, '(($2)^(1/($1)))')
-            .replace(/\\sqrt\{([^}]+)\}/g, 'sqrt($1)')
-            // Handle trig functions
-            .replace(/\\sec\s*/g, '(1/cos')
-            .replace(/\\csc\s*/g, '(1/sin')
-            .replace(/\\cot\s*/g, '(1/tan')
-            .replace(/\\tan\s*/g, 'tan')
-            .replace(/\\sin\s*/g, 'sin')
-            .replace(/\\cos\s*/g, 'cos')
-            // Handle inverse trig
-            .replace(/\\tan\^\{-1\}/g, 'atan')
-            .replace(/\\arctan/g, 'atan')
-            .replace(/\\arcsin/g, 'asin')
-            .replace(/\\arccos/g, 'acos')
-            // Handle logarithms
-            .replace(/\\ln\s*/g, 'log')
-            .replace(/\\log\s*/g, 'log10')
-            // Handle constants
-            .replace(/\\pi/g, 'pi')
-            .replace(/\\infty/g, 'Infinity')
-            // Handle brackets
-            .replace(/\\left\(/g, '(')
-            .replace(/\\right\)/g, ')')
-            .replace(/\\left\[/g, '[')
-            .replace(/\\right\]/g, ']')
-            .replace(/\\left\{/g, '{')
-            .replace(/\\right\}/g, '}')
-            .replace(/\{/g, '(')
-            .replace(/\}/g, ')')
-            // Handle operators
-            .replace(/\\cdot/g, '*')
-            .replace(/\\times/g, '*')
-            // Handle exponentials
-            .replace(/e\^\{([^}]+)\}/g, 'exp($1)')
-            .replace(/e\^/g, 'exp');
+        let expr = latex.trim();
 
-        // Handle implicit multiplication
-        expr = expr.replace(/(\d)([a-zA-Z])/g, '$1*$2');
+        // Handle absolute values FIRST (before other conversions)
+        // Match \left| ... \right| or just | ... |
+        expr = expr.replace(/\\left\|([^|]+)\\right\|/g, 'abs($1)');
+        // Handle simple | ... | patterns (non-greedy)
+        let absCount = 0;
+        expr = expr.replace(/\|/g, () => {
+            absCount++;
+            return absCount % 2 === 1 ? '(abs(' : '))';
+        });
+
+        // Handle fractions recursively for nested cases
+        let prevExpr;
+        do {
+            prevExpr = expr;
+            expr = expr.replace(/\\frac\{([^{}]*(?:\{[^{}]*\}[^{}]*)*)\}\{([^{}]*(?:\{[^{}]*\}[^{}]*)*)\}/g,
+                '(($1)/($2))');
+        } while (expr !== prevExpr);
+
+        // Handle roots
+        expr = expr.replace(/\\sqrt\[([^\]]+)\]\{([^}]+)\}/g, '(($2)^(1/($1)))');
+        expr = expr.replace(/\\sqrt\{([^}]+)\}/g, '(sqrt($1))');
+
+        // Handle inverse trig BEFORE regular trig (order matters!)
+        expr = expr.replace(/\\arctan/g, 'atan');
+        expr = expr.replace(/\\arcsin/g, 'asin');
+        expr = expr.replace(/\\arccos/g, 'acos');
+        expr = expr.replace(/\\tan\^\{-1\}/g, 'atan');
+        expr = expr.replace(/\\sin\^\{-1\}/g, 'asin');
+        expr = expr.replace(/\\cos\^\{-1\}/g, 'acos');
+
+        // Handle reciprocal trig functions with arguments
+        expr = expr.replace(/\\sec\{([^}]+)\}/g, '(1/cos($1))');
+        expr = expr.replace(/\\csc\{([^}]+)\}/g, '(1/sin($1))');
+        expr = expr.replace(/\\cot\{([^}]+)\}/g, '(1/tan($1))');
+        expr = expr.replace(/\\sec\(/g, '(1/cos(');
+        expr = expr.replace(/\\csc\(/g, '(1/sin(');
+        expr = expr.replace(/\\cot\(/g, '(1/tan(');
+
+        // Handle reciprocal trig with space and variable
+        expr = expr.replace(/\\sec\s+([a-zA-Z])/g, '(1/cos($1))');
+        expr = expr.replace(/\\csc\s+([a-zA-Z])/g, '(1/sin($1))');
+        expr = expr.replace(/\\cot\s+([a-zA-Z])/g, '(1/tan($1))');
+
+        // Handle regular trig functions
+        expr = expr.replace(/\\tan/g, 'tan');
+        expr = expr.replace(/\\sin/g, 'sin');
+        expr = expr.replace(/\\cos/g, 'cos');
+
+        // Handle logarithms
+        expr = expr.replace(/\\ln/g, 'log');
+        expr = expr.replace(/\\log/g, 'log10');
+
+        // Handle exponentials and powers
+        expr = expr.replace(/\\exp\{([^}]+)\}/g, 'exp($1)');
+        // Handle e^{...} before general powers
+        expr = expr.replace(/e\^\{([^}]+)\}/g, 'exp($1)');
+        // Handle general powers with braces - ADD IMPLICIT MULTIPLICATION HERE
+        expr = expr.replace(/([a-zA-Z0-9]+)\^\{([^}]+)\}/g, '($1^($2))');
+        // Handle simple powers without braces (e.g., x^2)
+        expr = expr.replace(/([a-zA-Z0-9]+)\^([a-zA-Z0-9])/g, '($1^$2)');
+
+        // Handle constants
+        expr = expr.replace(/\\pi/g, 'pi');
+        expr = expr.replace(/\\e(?![a-zA-Z])/g, 'e');
+        expr = expr.replace(/\\infty/g, 'Infinity');
+
+        // Handle brackets and braces
+        expr = expr.replace(/\\left\(/g, '(');
+        expr = expr.replace(/\\right\)/g, ')');
+        expr = expr.replace(/\\left\[/g, '(');
+        expr = expr.replace(/\\right\]/g, ')');
+        expr = expr.replace(/\\left\\{/g, '(');
+        expr = expr.replace(/\\right\\}/g, ')');
+
+        // Handle operators
+        expr = expr.replace(/\\cdot/g, '*');
+        expr = expr.replace(/\\times/g, '*');
+        expr = expr.replace(/\\div/g, '/');
+        expr = expr.replace(/\\pm/g, '+');
+
+        // IMPORTANT: Handle implicit multiplication BEFORE converting braces to parens
+        // This preserves the structure and prevents )(  patterns
+
+        // Handle {expr1}{expr2} -> convert to (expr1)*(expr2) before general brace conversion
+        expr = expr.replace(/\}\s*\{/g, ')*(');
+
+        // Clean up remaining braces (convert to parentheses)
+        expr = expr.replace(/\{/g, '(');
+        expr = expr.replace(/\}/g, ')');
+
+        // SMARTER APPROACH: Add multiplication between adjacent variables, but NOT within function names
+        const knownFuncs = ['sin', 'cos', 'tan', 'asin', 'acos', 'atan', 'log', 'log10', 'sqrt', 'exp', 'abs', 'pi'];
+
+        // Step 1: Add implicit multiplication between consecutive single-letter variables
+        // Use negative lookahead/lookbehind to avoid matching inside known functions
+        let newExpr = '';
+        let i = 0;
+
+        while (i < expr.length) {
+            // Check if current position starts a known function
+            let matchedFunc = null;
+            for (let func of knownFuncs) {
+                if (expr.substr(i, func.length) === func) {
+                    // Verify it's actually the function (check what comes after)
+                    const nextIdx = i + func.length;
+                    const nextChar = expr[nextIdx];
+                    // Function if followed by '(' or operator or end
+                    if (!nextChar || nextChar === '(' || '+-*/^),'.includes(nextChar)) {
+                        matchedFunc = func;
+                        break;
+                    }
+                }
+            }
+
+            if (matchedFunc) {
+                // Copy the entire function name
+                newExpr += matchedFunc;
+                i += matchedFunc.length;
+            } else if (/[a-z]/i.test(expr[i])) {
+                // Single letter variable
+                newExpr += expr[i];
+                // Check if next char is also a single letter (not start of function)
+                if (i + 1 < expr.length && /[a-z]/i.test(expr[i + 1])) {
+                    // Check if next position starts a function
+                    let nextIsFunc = false;
+                    for (let func of knownFuncs) {
+                        if (expr.substr(i + 1, func.length) === func) {
+                            const afterIdx = i + 1 + func.length;
+                            const afterChar = expr[afterIdx];
+                            if (!afterChar || afterChar === '(' || '+-*/^),'.includes(afterChar)) {
+                                nextIsFunc = true;
+                                break;
+                            }
+                        }
+                    }
+                    // If next is NOT a function, add multiplication
+                    if (!nextIsFunc) {
+                        newExpr += '*';
+                    }
+                }
+                i++;
+            } else {
+                // Not a letter, just copy
+                newExpr += expr[i];
+                i++;
+            }
+        }
+
+        expr = newExpr;
+
+        // Now handle other implicit multiplication cases
+        // 1. Number followed by letter
+        expr = expr.replace(/(\d+\.?\d*)([a-zA-Z])/g, '$1*$2');
+        // 2. Closing paren followed by number
         expr = expr.replace(/\)(\d)/g, ')*$1');
+        // 3. Number followed by opening paren
         expr = expr.replace(/(\d)\(/g, '$1*(');
-        expr = expr.replace(/\)([a-zA-Z])/g, ')*$1');
-        expr = expr.replace(/([a-zA-Z])\(/g, '$1*(');
+        // 4. Closing paren followed by opening paren (but not for functions)
+        expr = expr.replace(/\)\s*\(/g, (match, offset) => {
+            const before = expr.substring(Math.max(0, offset - 15), offset);
+            for (let func of knownFuncs) {
+                if (before.endsWith(func)) {
+                    return match;
+                }
+            }
+            return ')*(';
+        });
+        // 5. Closing paren followed by letter (variable, not function)
+        expr = expr.replace(/\)([a-zA-Z])/g, (match, letter, offset) => {
+            const afterMatch = expr.substring(offset + match.length);
+            if (afterMatch.startsWith('(')) {
+                const potentialFunc = expr.substring(offset + 1).match(/^[a-zA-Z]+/);
+                if (potentialFunc && knownFuncs.includes(potentialFunc[0])) {
+                    return match;
+                }
+            }
+            return ')*' + letter;
+        });
+        // 6. Letter followed by opening paren (only for variables, not functions)
+        expr = expr.replace(/([a-zA-Z])(\()/g, (match, letter, paren, offset) => {
+            const before = expr.substring(Math.max(0, offset - 15), offset + 1);
+            for (let func of knownFuncs) {
+                if (before.endsWith(func)) {
+                    return match;
+                }
+            }
+            return letter + '*' + paren;
+        });
 
-        // Clean up any remaining LaTeX commands
+        // Clean up any remaining LaTeX backslashes
         expr = expr.replace(/\\/g, '');
+
+        // Remove extra spaces
+        expr = expr.replace(/\s+/g, '');
 
         return expr;
     };
+
 
     // Add variable management functions
     const addVariable = () => {
@@ -270,16 +417,78 @@ const Homepage = () => {
 
     // Method 1: Direct Substitution
     const tryDirectSubstitution = (expr, vars) => {
+
         try {
+
+
             const scope = {};
             vars.forEach(v => {
-                scope[v.name] = evaluateSpecialValue(v.value);
+                const val = evaluateSpecialValue(v.value);
+                // Only add numeric values to scope
+                if (typeof val === 'number') {
+                    scope[v.name] = val;
+                }
             });
 
-            const result = math.evaluate(expr, scope);
+            expr = expr.replace(/sqrt\*/g, "sqrt");
+            // List of recognized math functions
 
-            // Check if result is a valid finite number (not NaN, not Infinity, not undefined)
-            if (isFinite(result) && !isNaN(result) && result !== undefined && result !== null) {
+            function fixExpression(expr) {
+                if (!expr) return "";
+
+                // 1. Clean up spacing and identify trig functions
+                let fixed = expr.replace(/\s+/g, '');
+
+                // 2. Wrap single-letter arguments: cosx -> cos(x)
+                // This regex avoids nesting by only grabbing the first letter/number after the function
+                fixed = fixed.replace(/(cos|sin|tan|log|ln)([a-z0-9])/gi, '$1($2)');
+
+                // 3. Insert multiplication between adjacent parts
+                // Handle: )tan -> ) * tan  AND  x( -> x * (
+                fixed = fixed.replace(/(\))(?=[a-z])/gi, '$1 * ');
+                fixed = fixed.replace(/([a-z0-9])(?=cos|sin|tan|log|ln)/gi, '$1 * ');
+
+                // 4. Fix the Denominator grouping
+                // If we have a '/' and the next character isn't a '(', wrap the rest in '('
+                if (fixed.includes('/') && !fixed.includes('/(')) {
+                    fixed = fixed.replace(/\/(.*)/, '/($1)');
+                }
+
+                // 5. Balance all parentheses
+                // Count opening vs closing and append necessary ')'
+                const openCount = (fixed.match(/\(/g) || []).length;
+                const closeCount = (fixed.match(/\)/g) || []).length;
+
+                if (openCount > closeCount) {
+                    fixed += ")".repeat(openCount - closeCount);
+                }
+
+                return fixed;
+            }
+
+            console.log("Original: ", expr);
+            let fixedExpr = fixExpression(expr);
+            console.log("Fixed:    ", fixedExpr); // Output: 1 / cos(x) * tan(y)
+
+
+            const result = math.evaluate(fixedExpr, scope);
+            console.log("result:: ", result);
+            // Accept result if it's a finite number
+            if (typeof result === 'number' && isFinite(result) && !isNaN(result)) {
+                return {
+                    success: true,
+                    value: result,
+                    method: 'Direct Substitution',
+                    steps: [{
+                        title: 'Step 1: Direct Substitution',
+                        explanation: `Substituting ${vars.map(v => `${v.name} = ${v.value}`).join(', ')} directly into the function gives a finite result.`,
+                        math: `f(${vars.map(v => v.value).join(', ')}) = ${formatNumber(result)}`
+                    }]
+                };
+            }
+
+            // If result is Infinity or -Infinity, that's also valid
+            if (result === Infinity || result === -Infinity) {
                 return {
                     success: true,
                     value: result,
@@ -287,10 +496,11 @@ const Homepage = () => {
                     steps: [{
                         title: 'Step 1: Direct Substitution',
                         explanation: `Substituting ${vars.map(v => `${v.name} = ${v.value}`).join(', ')} directly into the function.`,
-                        math: `f(${vars.map(v => v.value).join(', ')}) = ${formatNumber(result)}`
+                        math: `f(${vars.map(v => v.value).join(', ')}) = ${result === Infinity ? '\\infty' : '-\\infty'}`
                     }]
                 };
             }
+
             return { success: false };
         } catch (error) {
             // If there's an error (like division by zero), direct substitution fails
@@ -740,6 +950,7 @@ const Homepage = () => {
     // Main calculation function
     const calculateLimit = async () => {
         try {
+            // IF FUNCTION IS NOT ENTERED
             if (!mathFieldRef.current) {
                 showToastMessage('Please enter a function');
                 return;
@@ -774,25 +985,14 @@ const Homepage = () => {
                 result = method.fn();
                 console.log(`${method.name} result:`, result);
 
-                if (result.success && result.value !== undefined && result.value !== null) {
-                    // Verify the result is valid
-                    if (typeof result.value === 'number' && (isFinite(result.value) || result.value === Infinity || result.value === -Infinity)) {
-                        console.log(`✓ Success with ${method.name}: ${result.value}`);
-                        setMethodUsed(result.method);
-                        setResult(result.value);
-                        setSteps(result.steps);
-                        setShowResult(true);
-                        showToastMessage(`Solved using ${result.method}!`);
-                        return;
-                    } else if (typeof result.value === 'string' && result.value !== 'Does not exist or undefined') {
-                        console.log(`✓ Success with ${method.name}: ${result.value}`);
-                        setMethodUsed(result.method);
-                        setResult(result.value);
-                        setSteps(result.steps);
-                        setShowResult(true);
-                        showToastMessage(`Solved using ${result.method}!`);
-                        return;
-                    }
+                if (result.success) {
+                    console.log(`✓ Success with ${method.name}: ${result.value}`);
+                    setMethodUsed(result.method);
+                    setResult(result.value);
+                    setSteps(result.steps);
+                    setShowResult(true);
+                    showToastMessage(`Solved using ${result.method}!`);
+                    return;
                 }
             }
 
