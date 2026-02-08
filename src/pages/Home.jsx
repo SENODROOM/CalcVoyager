@@ -14,6 +14,8 @@ const Homepage = () => {
 
     const functionFieldRef = useRef(null);
     const mathFieldRef = useRef(null);
+    const inputSectionRef = useRef(null);
+    const resultSectionRef = useRef(null);
 
     // Memoize demoExamples to prevent re-creation on every render
     const demoExamples = useMemo(() => [
@@ -60,6 +62,11 @@ const Homepage = () => {
             const MQ = window.MathQuill.getInterface(2);
             const mathField = MQ.MathField(functionFieldRef.current, {
                 spaceBehavesLikeTab: true,
+                handlers: {
+                    enter: function () {
+                        calculateLimit();
+                    }
+                }
             });
             mathFieldRef.current = mathField;
             mathField.latex('');
@@ -98,6 +105,22 @@ const Homepage = () => {
         }
     }, [steps]);
 
+    // Optimized Scroll Logic
+    useEffect(() => {
+        // Only scroll if we have a result AND steps are present in the DOM
+        if (showResult && steps.length > 0) {
+            // requestAnimationFrame ensures we wait for the browser's next paint
+            requestAnimationFrame(() => {
+                if (resultSectionRef.current) {
+                    resultSectionRef.current.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+            });
+        }
+    }, [showResult, steps]); // Add steps as a dependency
+
     // Quick insert symbols into MathQuill
     const insertSymbol = (latex) => {
         if (mathFieldRef.current) {
@@ -115,6 +138,16 @@ const Homepage = () => {
             setVariables(parsedVars);
 
             showToastMessage(`Loaded: ${example.desc}`);
+
+            // Scroll to input section
+            setTimeout(() => {
+                if (inputSectionRef.current) {
+                    inputSectionRef.current.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+            }, 100);
         }
     };
 
@@ -501,6 +534,10 @@ const Homepage = () => {
                     console.log('Square root expression variables:', { var1, expr2 });
 
                     // Check if denominator is var1 - expr2
+                    // For example: x - (y+1) which is written as x-y-1
+                    const denPattern = new RegExp(`${var1}\\s*-\\s*${expr2.replace(/\+/g, '\\s*-\\s*').replace(/-/g, '\\s*\\+\\s*')}`, 'i');
+
+                    // More robust: try to match x - y - 1 when expr2 is "y+1"
                     // Split expr2 to check components
                     let denMatch2 = null;
 
@@ -1095,7 +1132,7 @@ const Homepage = () => {
                 </div>
 
                 {/* Input Section */}
-                <div className="input-section">
+                <div className="input-section" ref={inputSectionRef}>
                     <div className="section-title">Enter Your Limit</div>
 
                     <div className="limit-builder">
@@ -1195,7 +1232,7 @@ const Homepage = () => {
 
                 {/* Results */}
                 {showResult && (
-                    <div className="result-section">
+                    <div className="result-section" ref={resultSectionRef}>
                         <div className="answer-box">
                             <div className="answer-label">
                                 Answer (Method: {methodUsed}):
