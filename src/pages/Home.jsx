@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import * as math from 'mathjs';
 import { latexToMathJs } from '../utils/Latex Convertor/LatexToMathJs';
 
@@ -71,6 +71,7 @@ const Homepage = () => {
             mathFieldRef.current = mathField;
             mathField.latex('');
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     // Render KaTeX for demo examples
@@ -526,10 +527,6 @@ const Homepage = () => {
                 if (numSqrtMatch) {
                     const [, var1, expr2] = numSqrtMatch;
                     console.log('Square root expression variables:', { var1, expr2 });
-
-                    // Check if denominator is var1 - expr2
-                    // For example: x - (y+1) which is written as x-y-1
-                    const denPattern = new RegExp(`${var1}\\s*-\\s*${expr2.replace(/\+/g, '\\s*-\\s*').replace(/-/g, '\\s*\\+\\s*')}`, 'i');
 
                     // More robust: try to match x - y - 1 when expr2 is "y+1"
                     // Split expr2 to check components
@@ -1027,7 +1024,7 @@ const Homepage = () => {
     };
 
     // Main calculation function
-    const calculateLimit = async () => {
+    const calculateLimit = useCallback(async () => {
         try {
             // IF FUNCTION IS NOT ENTERED
             if (!mathFieldRef.current) {
@@ -1091,7 +1088,8 @@ const Homepage = () => {
             console.error('ERROR:', error);
             showToastMessage('Error: ' + error.message);
         }
-    };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [variables]);
 
     return (
         <div className="app-body">
