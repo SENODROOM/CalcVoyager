@@ -501,10 +501,6 @@ const Homepage = () => {
                     console.log('Square root expression variables:', { var1, expr2 });
 
                     // Check if denominator is var1 - expr2
-                    // For example: x - (y+1) which is written as x-y-1
-                    const denPattern = new RegExp(`${var1}\\s*-\\s*${expr2.replace(/\+/g, '\\s*-\\s*').replace(/-/g, '\\s*\\+\\s*')}`, 'i');
-
-                    // More robust: try to match x - y - 1 when expr2 is "y+1"
                     // Split expr2 to check components
                     let denMatch2 = null;
 
