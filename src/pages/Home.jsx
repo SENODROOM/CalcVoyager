@@ -249,27 +249,44 @@ const Homepage = () => {
 
     // Method 1: Direct Substitution
     const tryDirectSubstitution = (expr, vars) => {
-
         try {
-
-
             const scope = {};
             vars.forEach(v => {
                 const val = evaluateSpecialValue(v.value);
-                // Only add numeric values to scope
                 if (typeof val === 'number') {
                     scope[v.name] = val;
                 }
             });
 
+            // Fix sqrt
             expr = expr.replace(/sqrt\*/g, "sqrt");
 
-            console.log("Original: ", expr);
+            // Fix exp patterns - handle cases where exp got concatenated
+            // zexp -> z*exp, 2exp -> 2*exp, etc.
+            expr = expr.replace(/([a-z0-9])exp/gi, '$1*exp');
 
+            // Convert exp to e^
+            expr = expr.replace(/exp\*/g, "e^");
+            expr = expr.replace(/exp\(/g, "e^(");
+
+            // Add explicit multiplication between variable/number and e
+            expr = expr.replace(/([a-z0-9])e\^/gi, '$1*e^');
+
+            // Fix cos*, sin*, tan*, etc (remove the *)
+            expr = expr.replace(/(cos|sin|tan|log|ln)\*/g, '$1');
+
+            // Add multiplication between number and letter/function
+            expr = expr.replace(/([0-9])([a-z])/gi, '$1*$2');
+
+            // Add multiplication between closing paren and letter/number
+            expr = expr.replace(/\)([a-z0-9(])/gi, ')*$1');
+
+            console.log("Original: ", expr);
+            console.log("Processed: ", expr);
 
             const result = math.evaluate(expr, scope);
             console.log("result:: ", result);
-            // Accept result if it's a finite number
+
             if (typeof result === 'number' && isFinite(result) && !isNaN(result)) {
                 return {
                     success: true,
@@ -283,7 +300,6 @@ const Homepage = () => {
                 };
             }
 
-            // If result is Infinity or -Infinity, that's also valid
             if (result === Infinity || result === -Infinity) {
                 return {
                     success: true,
@@ -299,7 +315,7 @@ const Homepage = () => {
 
             return { success: false };
         } catch (error) {
-            // If there's an error (like division by zero), direct substitution fails
+            console.log("Direct substitution error:", error);
             return { success: false };
         }
     };
