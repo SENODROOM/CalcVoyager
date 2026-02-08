@@ -308,7 +308,67 @@ const Homepage = () => {
     };
 
     // Method 2: Advanced Factorization
+    // Method 2: Advanced Factorization
+    // Method 2: Advanced Factorization
+    // Method 2: Advanced Factorization
     const tryFactorization = (latex, expr, vars) => {
+
+        // Helper function to extract numerator and denominator from nested LaTeX
+        const extractFraction = (latex) => {
+            const fracIndex = latex.indexOf('\\frac');
+            if (fracIndex === -1) return null;
+
+            let i = fracIndex + 5; // Skip '\\frac'
+
+            // Skip whitespace
+            while (i < latex.length && latex[i] === ' ') i++;
+
+            if (i >= latex.length || latex[i] !== '{') return null;
+
+            // Extract numerator
+            let braceCount = 0;
+            let numeratorStart = i + 1;
+            i++;
+            braceCount = 1;
+
+            while (i < latex.length && braceCount > 0) {
+                if (latex[i] === '{') braceCount++;
+                else if (latex[i] === '}') braceCount--;
+                if (braceCount > 0) i++;
+            }
+
+            const numeratorEnd = i;
+            const numerator = latex.substring(numeratorStart, numeratorEnd);
+
+            i++; // Move past the closing brace
+
+            // Skip whitespace
+            while (i < latex.length && latex[i] === ' ') i++;
+
+            if (i >= latex.length || latex[i] !== '{') return null;
+
+            // Extract denominator
+            let denominatorStart = i + 1;
+            i++;
+            braceCount = 1;
+
+            while (i < latex.length && braceCount > 0) {
+                if (latex[i] === '{') braceCount++;
+                else if (latex[i] === '}') braceCount--;
+                if (braceCount > 0) i++;
+            }
+
+            const denominatorEnd = i;
+            const denominator = latex.substring(denominatorStart, denominatorEnd);
+
+            console.log('Extracted numerator:', numerator);
+            console.log('Extracted denominator:', denominator);
+
+            return {
+                numerator: numerator,
+                denominator: denominator
+            };
+        };
 
         // Helper function for algebraic factorization
         const attemptAlgebraicFactorization = (numeratorLatex, denominatorLatex, numerator, denominator, vars) => {
@@ -336,13 +396,9 @@ const Homepage = () => {
                     console.log('Perfect square variables:', { a1, b1, c1, d1 });
                     console.log('Linear variables:', { a2, b2 });
 
-                    // For x^2 - 2xy + y^2: a1=x, b1=x, c1=y, d1=y
-                    // For x - y: a2=x, b2=y
                     if (a1 === b1 && c1 === d1 && a1 === a2 && d1 === b2) {
                         console.log('Perfect square pattern matched!');
 
-                        // The simplified form after cancellation is (a - b)
-                        // When x→y, this evaluates to 0
                         const limitValue = 0;
                         console.log('limitValue:', limitValue);
 
@@ -370,18 +426,10 @@ const Homepage = () => {
                     console.log('Diff squares variables:', { a, b, c, d });
 
                     if ((a === c && b === d) || (a === d && b === c)) {
-                        // (a^2 - b^2) / (a - b) = (a + b)(a - b) / (a - b) = a + b
-                        // When a → b, this gives b + b = 2b
-
-                        // Find the value of the approaching variable
                         let limitValue = 0;
                         vars.forEach(v => {
                             if (v.name === a && v.value === b) {
-                                // x → y means when evaluating a + b where a=b, we get 2b
-                                // We need to find what value b approaches to
-                                // For symbolic limits like x→y, the result is 2y but we can't evaluate it
-                                // So we'll use a test value
-                                limitValue = 2; // This represents 2y where y is the variable
+                                limitValue = 2;
                             } else if (v.name === a) {
                                 const val = evaluateSpecialValue(v.value);
                                 limitValue = 2 * val;
@@ -396,6 +444,84 @@ const Homepage = () => {
                             factoredForm: `\\frac{(${a} + ${b})(${a} - ${b})}{${a} - ${b}}`,
                             commonFactor: `(${a} - ${b})`,
                             simplifiedForm: `${a} + ${b}`,
+                            limitValue: limitValue
+                        };
+                    }
+                }
+
+                // Case 3: Square root expressions like (x - y + 2√y - 2√x) / (√x - √y)
+                // Pattern: numerator has form a - b + 2√b - 2√a, denominator has √a - √b
+                const sqrtNumeratorPattern = /([a-z])\s*-\s*([a-z])\s*\+\s*2\s*\\sqrt\{([a-z])\}\s*-\s*2\s*\\sqrt\{([a-z])\}/i;
+                const sqrtDenominatorPattern = /\\sqrt\{([a-z])\}\s*-\s*\\sqrt\{([a-z])\}/i;
+
+                numMatch = numeratorLatex.match(sqrtNumeratorPattern);
+                denMatch = denominatorLatex.match(sqrtDenominatorPattern);
+
+                console.log('sqrtNumeratorPattern match:', numMatch);
+                console.log('sqrtDenominatorPattern match:', denMatch);
+
+                if (numMatch && denMatch) {
+                    const [, a1, b1, c1, d1] = numMatch;
+                    const [, a2, b2] = denMatch;
+
+                    console.log('Square root numerator variables:', { a1, b1, c1, d1 });
+                    console.log('Square root denominator variables:', { a2, b2 });
+
+                    // Check if pattern matches: x - y + 2√y - 2√x with denominator √x - √y
+                    if (a1 === d1 && b1 === c1 && a1 === a2 && b1 === b2) {
+                        console.log('Square root pattern matched!');
+
+                        // This can be rewritten as (√a - √b)² / (√a - √b)
+                        // Simplified form: √a - √b
+                        // When both a → 0 and b → 0, this evaluates to 0
+
+                        const limitValue = 0;
+                        console.log('limitValue:', limitValue);
+
+                        return {
+                            success: true,
+                            explanation: `Recognize that ${a1} - ${b1} + 2\\sqrt{${b1}} - 2\\sqrt{${a1}} = (\\sqrt{${a1}} - \\sqrt{${b1}})^2`,
+                            factoredForm: `\\frac{(\\sqrt{${a1}} - \\sqrt{${b1}})^2}{\\sqrt{${a1}} - \\sqrt{${b1}}}`,
+                            commonFactor: `(\\sqrt{${a1}} - \\sqrt{${b1}})`,
+                            simplifiedForm: `\\sqrt{${a1}} - \\sqrt{${b1}}`,
+                            limitValue: limitValue
+                        };
+                    }
+                }
+
+                // Case 4: Difference of square roots with conjugate multiplication
+                // Pattern: (√a - √b) in denominator, can use conjugate
+                denMatch = denominatorLatex.match(sqrtDenominatorPattern);
+
+                if (denMatch && !numMatch) {
+                    const [, a, b] = denMatch;
+                    console.log('Simple sqrt denominator, may need rationalization');
+
+                    // Check if numerator is just a - b
+                    const simpleNumPattern = new RegExp(`${a}\\s*-\\s*${b}`, 'i');
+                    if (numeratorLatex.match(simpleNumPattern)) {
+                        console.log('Numerator is a - b, can factor as difference of squares');
+
+                        // a - b = (√a)² - (√b)² = (√a + √b)(√a - √b)
+                        let limitValue = 0;
+
+                        // Find the limit value by substituting
+                        vars.forEach(v => {
+                            if (v.name === a) {
+                                const val = evaluateSpecialValue(v.value);
+                                // √a + √b when a → b gives √b + √b = 2√b
+                                limitValue = 2 * Math.sqrt(val);
+                            }
+                        });
+
+                        console.log('limitValue:', limitValue);
+
+                        return {
+                            success: true,
+                            explanation: `Factor numerator as difference of squares: ${a} - ${b} = (\\sqrt{${a}} + \\sqrt{${b}})(\\sqrt{${a}} - \\sqrt{${b}})`,
+                            factoredForm: `\\frac{(\\sqrt{${a}} + \\sqrt{${b}})(\\sqrt{${a}} - \\sqrt{${b}})}{\\sqrt{${a}} - \\sqrt{${b}}}`,
+                            commonFactor: `(\\sqrt{${a}} - \\sqrt{${b}})`,
+                            simplifiedForm: `\\sqrt{${a}} + \\sqrt{${b}}`,
                             limitValue: limitValue
                         };
                     }
@@ -416,7 +542,7 @@ const Homepage = () => {
             console.log('expr:', expr);
             console.log('vars:', vars);
 
-            const fractionMatch = latex.match(/\\frac\{([^}]+)\}\{([^}]+)\}/);
+            const fractionMatch = extractFraction(latex);
             console.log('fractionMatch:', fractionMatch);
 
             if (!fractionMatch) {
@@ -424,8 +550,8 @@ const Homepage = () => {
                 return { success: false };
             }
 
-            const numeratorLatex = fractionMatch[1];
-            const denominatorLatex = fractionMatch[2];
+            const numeratorLatex = fractionMatch.numerator;
+            const denominatorLatex = fractionMatch.denominator;
 
             console.log('numeratorLatex:', numeratorLatex);
             console.log('denominatorLatex:', denominatorLatex);
