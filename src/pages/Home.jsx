@@ -55,24 +55,6 @@ const Homepage = () => {
         { num: 29, latex: 'ze^{-2y}\\cos 2x', point: 'x=\\pi,y=0,z=3', desc: 'Three Variables', category: 'Three Variables' },
         { num: 30, latex: '\\ln\\sqrt{x^2+y^2+z^2}', point: 'x=e,y=0,z=0', desc: 'Three Variables', category: 'Three Variables' }
     ], []);
-
-    // Initialize MathQuill
-    useEffect(() => {
-        if (window.MathQuill && functionFieldRef.current && !mathFieldRef.current) {
-            const MQ = window.MathQuill.getInterface(2);
-            const mathField = MQ.MathField(functionFieldRef.current, {
-                spaceBehavesLikeTab: true,
-                handlers: {
-                    enter: function () {
-                        calculateLimit();
-                    }
-                }
-            });
-            mathFieldRef.current = mathField;
-            mathField.latex('');
-        }
-    }, []);
-
     // Render KaTeX for demo examples
     useEffect(() => {
         if (window.katex) {
@@ -528,10 +510,6 @@ const Homepage = () => {
                     console.log('Square root expression variables:', { var1, expr2 });
 
                     // Check if denominator is var1 - expr2
-                    // For example: x - (y+1) which is written as x-y-1
-                    const denPattern = new RegExp(`${var1}\\s*-\\s*${expr2.replace(/\+/g, '\\s*-\\s*').replace(/-/g, '\\s*\\+\\s*')}`, 'i');
-
-                    // More robust: try to match x - y - 1 when expr2 is "y+1"
                     // Split expr2 to check components
                     let denMatch2 = null;
 
