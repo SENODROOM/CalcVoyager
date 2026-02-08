@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import * as math from 'mathjs';
 import { latexToMathJs } from '../utils/Latex Convertor/LatexToMathJs';
 
@@ -55,6 +55,25 @@ const Homepage = () => {
         { num: 29, latex: 'ze^{-2y}\\cos 2x', point: 'x=\\pi,y=0,z=3', desc: 'Three Variables', category: 'Three Variables' },
         { num: 30, latex: '\\ln\\sqrt{x^2+y^2+z^2}', point: 'x=e,y=0,z=0', desc: 'Three Variables', category: 'Three Variables' }
     ], []);
+
+    // Initialize MathQuill
+    useEffect(() => {
+        if (window.MathQuill && functionFieldRef.current && !mathFieldRef.current) {
+            const MQ = window.MathQuill.getInterface(2);
+            const mathField = MQ.MathField(functionFieldRef.current, {
+                spaceBehavesLikeTab: true,
+                handlers: {
+                    enter: function () {
+                        calculateLimit();
+                    }
+                }
+            });
+            mathFieldRef.current = mathField;
+            mathField.latex('');
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
     // Render KaTeX for demo examples
     useEffect(() => {
         if (window.katex) {
@@ -509,7 +528,7 @@ const Homepage = () => {
                     const [, var1, expr2] = numSqrtMatch;
                     console.log('Square root expression variables:', { var1, expr2 });
 
-                    // Check if denominator is var1 - expr2
+                    // More robust: try to match x - y - 1 when expr2 is "y+1"
                     // Split expr2 to check components
                     let denMatch2 = null;
 
@@ -1005,7 +1024,7 @@ const Homepage = () => {
     };
 
     // Main calculation function
-    const calculateLimit = async () => {
+    const calculateLimit = useCallback(async () => {
         try {
             // IF FUNCTION IS NOT ENTERED
             if (!mathFieldRef.current) {
@@ -1069,7 +1088,8 @@ const Homepage = () => {
             console.error('ERROR:', error);
             showToastMessage('Error: ' + error.message);
         }
-    };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [variables]);
 
     return (
         <div className="app-body">
