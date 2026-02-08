@@ -258,28 +258,6 @@ const Homepage = () => {
                 }
             });
 
-            // Fix sqrt
-            expr = expr.replace(/sqrt\*/g, "sqrt");
-
-            // Fix exp patterns - handle cases where exp got concatenated
-            // zexp -> z*exp, 2exp -> 2*exp, etc.
-            expr = expr.replace(/([a-z0-9])exp/gi, '$1*exp');
-
-            // Convert exp to e^
-            expr = expr.replace(/exp\*/g, "e^");
-            expr = expr.replace(/exp\(/g, "e^(");
-
-            // Add explicit multiplication between variable/number and e
-            expr = expr.replace(/([a-z0-9])e\^/gi, '$1*e^');
-
-            // Fix cos*, sin*, tan*, etc (remove the *)
-            expr = expr.replace(/(cos|sin|tan|log|ln)\*/g, '$1');
-
-            // Add multiplication between number and letter/function
-            expr = expr.replace(/([0-9])([a-z])/gi, '$1*$2');
-
-            // Add multiplication between closing paren and letter/number
-            expr = expr.replace(/\)([a-z0-9(])/gi, ')*$1');
 
             console.log("Original: ", expr);
             console.log("Processed: ", expr);
