@@ -39,7 +39,7 @@ const Homepage = () => {
         { num: 17, latex: '\\frac{x-y+2\\sqrt{y}-2\\sqrt{x}}{\\sqrt{x}-\\sqrt{y}}', point: 'x=0,y=0', desc: 'Quotients', category: 'Quotients' },
         { num: 18, latex: '\\frac{x+y-4}{\\sqrt{x+y}-2}', point: 'x=2,y=2', desc: 'Quotients', category: 'Quotients' },
         { num: 19, latex: '\\frac{\\sqrt{2x-y}-2}{2x-y-4}', point: 'x=2,y=0', desc: 'Quotients', category: 'Quotients' },
-        { num: 20, latex: '\\frac{\\sqrt{x}-\\sqrt{y}+1}{x-y-1}', point: 'x=4,y=3', desc: 'Quotients', category: 'Quotients' },
+        { num: 20, latex: '\\frac{\\sqrt{x}-\\sqrt{y+1}}{x-y-1}', point: 'x=4,y=3', desc: 'Quotients', category: 'Quotients' },
         { num: 21, latex: '\\frac{\\sin(x^2+y^2)}{x^2+y^2}', point: 'x=0,y=0', desc: 'Quotients', category: 'Quotients' },
         { num: 22, latex: '\\frac{1-\\cos(xy)}{xy}', point: 'x=0,y=0', desc: 'Quotients', category: 'Quotients' },
         { num: 23, latex: '\\frac{x^3+y^3}{x+y}', point: 'x=1,y=-1', desc: 'Quotients', category: 'Quotients' },
