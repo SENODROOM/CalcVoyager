@@ -49,7 +49,7 @@ const Homepage = () => {
         { num: 25, latex: '\\left(\\frac{1}{x}+\\frac{1}{y}+\\frac{1}{z}\\right)', point: 'x=3,y=4,z=5', desc: 'Three Variables', category: 'Three Variables' },
         { num: 26, latex: '\\frac{2xy+yz}{x^2+z^2}', point: 'x=-1,y=-1,z=1', desc: 'Three Variables', category: 'Three Variables' },
         { num: 27, latex: '\\sin^2 x+\\cos^2 y+\\sec^2 z', point: 'x=\\pi,y=0,z=0', desc: 'Three Variables', category: 'Three Variables' },
-        { num: 28, latex: '\\tan^{-1}xyz', point: 'x=1/\\sqrt{3},y=2,z=2', desc: 'Three Variables', category: 'Three Variables' },
+        { num: 28, latex: '\\tan^{-1}xyz', point: 'x=\\frac{-1}{4},y=\\frac{\\pi}{2},z=2', desc: 'Three Variables', category: 'Three Variables' },
         { num: 29, latex: 'ze^{-2y}\\cos 2x', point: 'x=\\pi,y=0,z=3', desc: 'Three Variables', category: 'Three Variables' },
         { num: 30, latex: '\\ln\\sqrt{x^2+y^2+z^2}', point: 'x=e,y=0,z=0', desc: 'Three Variables', category: 'Three Variables' }
     ], []);
@@ -230,47 +230,11 @@ const Homepage = () => {
             });
 
             expr = expr.replace(/sqrt\*/g, "sqrt");
-            // List of recognized math functions
-
-            function fixExpression(expr) {
-                if (!expr) return "";
-
-                // 1. Clean up spacing and identify trig functions
-                let fixed = expr.replace(/\s+/g, '');
-
-                // 2. Wrap single-letter arguments: cosx -> cos(x)
-                // This regex avoids nesting by only grabbing the first letter/number after the function
-                fixed = fixed.replace(/(cos|sin|tan|log|ln)([a-z0-9])/gi, '$1($2)');
-
-                // 3. Insert multiplication between adjacent parts
-                // Handle: )tan -> ) * tan  AND  x( -> x * (
-                fixed = fixed.replace(/(\))(?=[a-z])/gi, '$1 * ');
-                fixed = fixed.replace(/([a-z0-9])(?=cos|sin|tan|log|ln)/gi, '$1 * ');
-
-                // 4. Fix the Denominator grouping
-                // If we have a '/' and the next character isn't a '(', wrap the rest in '('
-                if (fixed.includes('/') && !fixed.includes('/(')) {
-                    fixed = fixed.replace(/\/(.*)/, '/($1)');
-                }
-
-                // 5. Balance all parentheses
-                // Count opening vs closing and append necessary ')'
-                const openCount = (fixed.match(/\(/g) || []).length;
-                const closeCount = (fixed.match(/\)/g) || []).length;
-
-                if (openCount > closeCount) {
-                    fixed += ")".repeat(openCount - closeCount);
-                }
-
-                return fixed;
-            }
 
             console.log("Original: ", expr);
-            let fixedExpr = fixExpression(expr);
-            console.log("Fixed:    ", fixedExpr);
 
 
-            const result = math.evaluate(fixedExpr, scope);
+            const result = math.evaluate(expr, scope);
             console.log("result:: ", result);
             // Accept result if it's a finite number
             if (typeof result === 'number' && isFinite(result) && !isNaN(result)) {
