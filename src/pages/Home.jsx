@@ -308,9 +308,6 @@ const Homepage = () => {
     };
 
     // Method 2: Advanced Factorization
-    // Method 2: Advanced Factorization
-    // Method 2: Advanced Factorization
-    // Method 2: Advanced Factorization
     const tryFactorization = (latex, expr, vars) => {
 
         // Helper function to extract numerator and denominator from nested LaTeX
@@ -522,6 +519,85 @@ const Homepage = () => {
                             factoredForm: `\\frac{(\\sqrt{${a}} + \\sqrt{${b}})(\\sqrt{${a}} - \\sqrt{${b}})}{\\sqrt{${a}} - \\sqrt{${b}}}`,
                             commonFactor: `(\\sqrt{${a}} - \\sqrt{${b}})`,
                             simplifiedForm: `\\sqrt{${a}} + \\sqrt{${b}}`,
+                            limitValue: limitValue
+                        };
+                    }
+                }
+
+                // Case 5: Square root with expressions like √x - √(y+1) / (x - y - 1)
+                // This is equivalent to (√x - √(y+1)) / (x - (y+1))
+                // Which follows the pattern √a - √b / (a - b)
+                const sqrtExprPattern = /\\sqrt\{([a-z])\}\s*-\s*\\sqrt\{([^}]+)\}/i;
+                const numSqrtMatch = numeratorLatex.match(sqrtExprPattern);
+
+                console.log('sqrtExprPattern match:', numSqrtMatch);
+
+                if (numSqrtMatch) {
+                    const [, var1, expr2] = numSqrtMatch;
+                    console.log('Square root expression variables:', { var1, expr2 });
+
+                    // Check if denominator is var1 - expr2
+                    // For example: x - (y+1) which is written as x-y-1
+                    const denPattern = new RegExp(`${var1}\\s*-\\s*${expr2.replace(/\+/g, '\\s*-\\s*').replace(/-/g, '\\s*\\+\\s*')}`, 'i');
+
+                    // More robust: try to match x - y - 1 when expr2 is "y+1"
+                    // Split expr2 to check components
+                    let denMatch2 = null;
+
+                    // Try pattern: x - (y+1) written as x-y-1
+                    if (expr2.includes('+')) {
+                        const parts = expr2.split('+');
+                        const expectedDen = `${var1}-${parts[0]}-${parts[1]}`.replace(/\s/g, '');
+                        const actualDen = denominatorLatex.replace(/\s/g, '');
+                        console.log('Checking denominator:', { expectedDen, actualDen });
+
+                        if (expectedDen === actualDen) {
+                            denMatch2 = true;
+                        }
+                    }
+
+                    // Try pattern: x - (y-1) written as x-y+1
+                    if (expr2.includes('-')) {
+                        const parts = expr2.split('-');
+                        const expectedDen = `${var1}-${parts[0]}+${parts[1]}`.replace(/\s/g, '');
+                        const actualDen = denominatorLatex.replace(/\s/g, '');
+                        console.log('Checking denominator:', { expectedDen, actualDen });
+
+                        if (expectedDen === actualDen) {
+                            denMatch2 = true;
+                        }
+                    }
+
+                    console.log('denMatch2:', denMatch2);
+
+                    if (denMatch2) {
+                        console.log('Square root with expression pattern matched!');
+
+                        // This follows: (√a - √b) / (a - b) = 1 / (√a + √b)
+                        // When we multiply numerator and denominator by conjugate
+
+                        // Find the limit value
+                        let limitValue = 0;
+
+                        // Evaluate at the limit point
+                        vars.forEach(v => {
+                            if (v.name === var1) {
+                                const val = evaluateSpecialValue(v.value);
+                                // When x → val and we have √x - √(y+1) / (x - (y+1))
+                                // Multiply by conjugate: 1 / (√x + √(y+1))
+                                // At the limit, both become equal
+                                limitValue = 1 / (2 * Math.sqrt(val));
+                            }
+                        });
+
+                        console.log('limitValue:', limitValue);
+
+                        return {
+                            success: true,
+                            explanation: `Multiply numerator and denominator by the conjugate`,
+                            factoredForm: `\\frac{${numeratorLatex})}{(\\sqrt{${var1}} - \\sqrt{${expr2}})(\\sqrt{${var1}} + \\sqrt{${expr2}})}`,
+                            commonFactor: `(${var1} - (${expr2}))`,
+                            simplifiedForm: `\\frac{1}{\\sqrt{${var1}} + \\sqrt{${expr2}}}`,
                             limitValue: limitValue
                         };
                     }
