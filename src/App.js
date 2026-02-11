@@ -8,6 +8,7 @@ import Home from './pages/Home';
 import ScrollToTop from './utils/ScrollToTop';
 import ContinuityFinder from "./pages/ContinuityFinder";
 import ExtremeValueFunction from "./pages/ExtremeValueFinder";
+import VolumeCalculator from "./pages/VolumeCalculator";
 
 function App() {
   return (
@@ -18,6 +19,7 @@ function App() {
           <Route path="/" element={<Layout body={<Home />} />} />
           <Route path="/test" element={<Layout body={<ContinuityFinder />} />} />
           <Route path="/extreme" element={<Layout body={<ExtremeValueFunction />} />} />
+          <Route path="/volumecalculator" element={<Layout body={<VolumeCalculator />} />} />
         </Routes>
       </BrowserRouter>
     </>
