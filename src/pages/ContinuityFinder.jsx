@@ -1,286 +1,78 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import * as math from 'mathjs';
 import { latexToMathJs } from '../utils/Latex Convertor/LatexToMathJs';
 
 const ContinuityFinder = () => {
-    const [selectedFunction, setSelectedFunction] = useState(null);
-    const [selectedPoint, setSelectedPoint] = useState('');
-    const [continuityResult, setContinuityResult] = useState(null);
+    const [variables, setVariables] = useState([{ name: 'x', value: '0' }, { name: 'y', value: '0' }]);
+    const [result, setResult] = useState(null);
     const [steps, setSteps] = useState([]);
-    const [loading, setLoading] = useState(false);
+    const [showResult, setShowResult] = useState(false);
+    const [toast, setToast] = useState({ show: false, message: '' });
+    const [analysisType, setAnalysisType] = useState('general'); // 'general' or 'point'
 
-    // Functions from the images - Exercises 31-40
-    const functions = [
-        // Exercise 31
-        { id: '31a', latex: '\\sin(x+y)', point: '', vars: ['x', 'y'], desc: 'Exercise 31a: f(x,y) = sin(x+y)' },
-        { id: '31b', latex: '\\ln(x^2+y^2)', point: '', vars: ['x', 'y'], desc: 'Exercise 31b: f(x,y) = ln(x²+y²)' },
+    const functionFieldRef = useRef(null);
+    const mathFieldRef = useRef(null);
+    const inputSectionRef = useRef(null);
+    const resultSectionRef = useRef(null);
 
-        // Exercise 32
-        { id: '32a', latex: '\\frac{x+y}{x-y}', point: '', vars: ['x', 'y'], desc: 'Exercise 32a: f(x,y) = (x+y)/(x-y)' },
-        { id: '32b', latex: '\\frac{y}{x^2+1}', point: '', vars: ['x', 'y'], desc: 'Exercise 32b: f(x,y) = y/(x²+1)' },
+    // Demo examples from the exercises
+    const demoExamples = useMemo(() => [
+        // Two Variables
+        { num: '31a', latex: '\\sin(x+y)', point: '', desc: 'sin(x+y)', category: 'Two Variables' },
+        { num: '31b', latex: '\\ln(x^2+y^2)', point: 'x=0,y=0', desc: 'ln(x²+y²)', category: 'Two Variables' },
+        { num: '32a', latex: '\\frac{x+y}{x-y}', point: 'x=1,y=1', desc: '(x+y)/(x-y)', category: 'Two Variables' },
+        { num: '32b', latex: '\\frac{y}{x^2+1}', point: '', desc: 'y/(x²+1)', category: 'Two Variables' },
+        { num: '33a', latex: '\\sin\\frac{1}{xy}', point: 'x=0,y=0', desc: 'sin(1/xy)', category: 'Two Variables' },
+        { num: '33b', latex: '\\frac{x+y}{2+\\cos x}', point: '', desc: '(x+y)/(2+cos x)', category: 'Two Variables' },
+        { num: '34a', latex: '\\frac{x^2+y^2}{x^2-3x+2}', point: 'x=1,y=0', desc: '(x²+y²)/(x²-3x+2)', category: 'Two Variables' },
+        { num: '34b', latex: '\\frac{1}{x^2-y}', point: 'x=1,y=1', desc: '1/(x²-y)', category: 'Two Variables' },
 
-        // Exercise 33
-        { id: '33a', latex: '\\sin\\frac{1}{xy}', point: '', vars: ['x', 'y'], desc: 'Exercise 33a: g(x,y) = sin(1/xy)' },
-        { id: '33b', latex: '\\frac{x+y}{2+\\cos x}', point: '', vars: ['x', 'y'], desc: 'Exercise 33b: g(x,y) = (x+y)/(2+cos x)' },
+        // Three Variables
+        { num: '35a', latex: 'x^2+y^2-2z^2', point: '', desc: 'x²+y²-2z²', category: 'Three Variables' },
+        { num: '35b', latex: '\\sqrt{x^2+y^2-1}', point: 'x=0,y=0,z=0', desc: '√(x²+y²-1)', category: 'Three Variables' },
+        { num: '36a', latex: '\\ln(xyz)', point: 'x=0,y=0,z=0', desc: 'ln(xyz)', category: 'Three Variables' },
+        { num: '36b', latex: 'e^{xy}\\cos z', point: '', desc: 'e^(xy)cos z', category: 'Three Variables' },
+        { num: '37a', latex: 'xy\\sin\\frac{1}{z}', point: 'x=0,y=0,z=0', desc: 'xy sin(1/z)', category: 'Three Variables' },
+        { num: '37b', latex: '\\frac{1}{x^2+z^2-1}', point: 'x=1,y=0,z=0', desc: '1/(x²+z²-1)', category: 'Three Variables' },
+    ], []);
 
-        // Exercise 34
-        { id: '34a', latex: '\\frac{x^2+y^2}{x^2-3x+2}', point: '', vars: ['x', 'y'], desc: 'Exercise 34a: g(x,y) = (x²+y²)/(x²-3x+2)' },
-        { id: '34b', latex: '\\frac{1}{x^2-y}', point: '', vars: ['x', 'y'], desc: 'Exercise 34b: g(x,y) = 1/(x²-y)' },
-
-        // Exercise 35
-        { id: '35a', latex: 'x^2+y^2-2z^2', point: '', vars: ['x', 'y', 'z'], desc: 'Exercise 35a: f(x,y,z) = x²+y²-2z²' },
-        { id: '35b', latex: '\\sqrt{x^2+y^2-1}', point: '', vars: ['x', 'y', 'z'], desc: 'Exercise 35b: f(x,y,z) = √(x²+y²-1)' },
-
-        // Exercise 36
-        { id: '36a', latex: '\\ln(xyz)', point: '', vars: ['x', 'y', 'z'], desc: 'Exercise 36a: f(x,y,z) = ln(xyz)' },
-        { id: '36b', latex: 'e^{xy}\\cos z', point: '', vars: ['x', 'y', 'z'], desc: 'Exercise 36b: f(x,y,z) = e^(xy)cos z' },
-
-        // Exercise 37
-        { id: '37a', latex: 'xy\\sin\\frac{1}{z}', point: '', vars: ['x', 'y', 'z'], desc: 'Exercise 37a: h(x,y,z) = xy sin(1/z)' },
-        { id: '37b', latex: '\\frac{1}{x^2+z^2-1}', point: '', vars: ['x', 'y', 'z'], desc: 'Exercise 37b: h(x,y,z) = 1/(x²+z²-1)' },
-
-        // Exercise 38
-        { id: '38a', latex: '\\frac{1}{|y|+|z|}', point: '', vars: ['x', 'y', 'z'], desc: 'Exercise 38a: h(x,y,z) = 1/(|y|+|z|)' },
-        { id: '38b', latex: '\\frac{1}{|xy|+|z|}', point: '', vars: ['x', 'y', 'z'], desc: 'Exercise 38b: h(x,y,z) = 1/(|xy|+|z|)' },
-
-        // Exercise 39
-        { id: '39a', latex: '\\ln(z-x^2-y^2-1)', point: '', vars: ['x', 'y', 'z'], desc: 'Exercise 39a: h(x,y,z) = ln(z-x²-y²-1)' },
-        { id: '39b', latex: '\\frac{1}{z-\\sqrt{x^2+y^2}}', point: '', vars: ['x', 'y', 'z'], desc: 'Exercise 39b: h(x,y,z) = 1/(z-√(x²+y²))' },
-
-        // Exercise 40
-        { id: '40a', latex: '\\sqrt{4-x^2-y^2-z^2}', point: '', vars: ['x', 'y', 'z'], desc: 'Exercise 40a: h(x,y,z) = √(4-x²-y²-z²)' },
-        { id: '40b', latex: '\\frac{1}{4-\\sqrt{x^2+y^2+z^2-9}}', point: '', vars: ['x', 'y', 'z'], desc: 'Exercise 40b: h(x,y,z) = 1/(4-√(x²+y²+z²-9))' },
-    ];
-
-    // Analyze continuity of a function
-    const analyzeContinuity = (func, pointStr) => {
-        setLoading(true);
-        setContinuityResult(null);
-        setSteps([]);
-
-        try {
-            const analysisSteps = [];
-            const mathJsExpr = latexToMathJs(func.latex);
-
-            analysisSteps.push({
-                title: 'Step 1: Function Analysis',
-                explanation: `Analyzing f(${func.vars.join(',')}) with expression: ${mathJsExpr}`,
-                math: func.latex
-            });
-
-            // Parse the point if provided
-            let testPoint = {};
-            if (pointStr) {
-                const pointParts = pointStr.split(',').map(p => p.trim());
-                func.vars.forEach((v, i) => {
-                    if (pointParts[i]) {
-                        const match = pointParts[i].match(/[a-z]=(.+)/);
-                        if (match) {
-                            testPoint[v] = match[1];
-                        }
-                    }
-                });
-            }
-
-            // Determine continuity based on function type
-            const result = determineContinuity(func, mathJsExpr, testPoint);
-
-            analysisSteps.push({
-                title: 'Step 2: Continuity Analysis',
-                explanation: result.explanation,
-                math: result.condition
-            });
-
-            analysisSteps.push({
-                title: 'Step 3: Conclusion',
-                explanation: result.conclusion,
-                math: result.domain
-            });
-
-            setContinuityResult(result);
-            setSteps(analysisSteps);
-
-        } catch (error) {
-            setContinuityResult({
-                isContinuous: false,
-                explanation: `Error analyzing function: ${error.message}`,
-                conclusion: 'Unable to determine continuity'
-            });
-        }
-
-        setLoading(false);
-    };
-
-    const determineContinuity = (func, expr, point) => {
-        const id = func.id;
-
-        // Analysis for each function
-        const analyses = {
-            '31a': {
-                isContinuous: true,
-                explanation: 'sin(x+y) is a composition of continuous functions (addition and sine)',
-                condition: '\\text{Continuous everywhere}',
-                conclusion: 'The function is continuous for all (x,y) ∈ ℝ²',
-                domain: '\\text{Domain: } \\mathbb{R}^2'
-            },
-            '31b': {
-                isContinuous: false,
-                explanation: 'ln(x²+y²) requires x²+y² > 0, which fails at (0,0)',
-                condition: 'x^2 + y^2 > 0',
-                conclusion: 'The function is continuous everywhere except at (0,0)',
-                domain: '\\text{Domain: } \\mathbb{R}^2 \\setminus \\{(0,0)\\}'
-            },
-            '32a': {
-                isContinuous: false,
-                explanation: 'The denominator (x-y) = 0 when x = y',
-                condition: 'x \\neq y',
-                conclusion: 'The function is continuous everywhere except on the line x = y',
-                domain: '\\{(x,y) : x \\neq y\\}'
-            },
-            '32b': {
-                isContinuous: true,
-                explanation: 'The denominator x²+1 is always positive (≥ 1)',
-                condition: '\\text{Continuous everywhere}',
-                conclusion: 'The function is continuous for all (x,y) ∈ ℝ²',
-                domain: '\\text{Domain: } \\mathbb{R}^2'
-            },
-            '33a': {
-                isContinuous: false,
-                explanation: 'sin(1/xy) is undefined when xy = 0 (x=0 or y=0)',
-                condition: 'xy \\neq 0',
-                conclusion: 'The function is continuous everywhere except on the coordinate axes',
-                domain: '\\{(x,y) : x \\neq 0, y \\neq 0\\}'
-            },
-            '33b': {
-                isContinuous: true,
-                explanation: 'The denominator 2+cos x is always positive (between 1 and 3)',
-                condition: '\\text{Continuous everywhere}',
-                conclusion: 'The function is continuous for all (x,y) ∈ ℝ²',
-                domain: '\\text{Domain: } \\mathbb{R}^2'
-            },
-            '34a': {
-                isContinuous: false,
-                explanation: 'The denominator x²-3x+2 = (x-1)(x-2) = 0 when x=1 or x=2',
-                condition: 'x \\neq 1, x \\neq 2',
-                conclusion: 'The function is continuous everywhere except on the lines x=1 and x=2',
-                domain: '\\{(x,y) : x \\neq 1, x \\neq 2\\}'
-            },
-            '34b': {
-                isContinuous: false,
-                explanation: 'The denominator x²-y = 0 when y = x²',
-                condition: 'y \\neq x^2',
-                conclusion: 'The function is continuous everywhere except on the parabola y = x²',
-                domain: '\\{(x,y) : y \\neq x^2\\}'
-            },
-            '35a': {
-                isContinuous: true,
-                explanation: 'x²+y²-2z² is a polynomial, which is continuous everywhere',
-                condition: '\\text{Continuous everywhere}',
-                conclusion: 'The function is continuous for all (x,y,z) ∈ ℝ³',
-                domain: '\\text{Domain: } \\mathbb{R}^3'
-            },
-            '35b': {
-                isContinuous: false,
-                explanation: 'Square root requires x²+y²-1 ≥ 0, so x²+y² ≥ 1',
-                condition: 'x^2 + y^2 \\geq 1',
-                conclusion: 'The function is continuous on and outside the unit circle',
-                domain: '\\{(x,y,z) : x^2 + y^2 \\geq 1\\}'
-            },
-            '36a': {
-                isContinuous: false,
-                explanation: 'ln(xyz) requires xyz > 0',
-                condition: 'xyz > 0',
-                conclusion: 'The function is continuous where xyz > 0',
-                domain: '\\{(x,y,z) : xyz > 0\\}'
-            },
-            '36b': {
-                isContinuous: true,
-                explanation: 'e^(xy)cos z is a composition of continuous functions',
-                condition: '\\text{Continuous everywhere}',
-                conclusion: 'The function is continuous for all (x,y,z) ∈ ℝ³',
-                domain: '\\text{Domain: } \\mathbb{R}^3'
-            },
-            '37a': {
-                isContinuous: false,
-                explanation: 'sin(1/z) is undefined when z = 0',
-                condition: 'z \\neq 0',
-                conclusion: 'The function is continuous everywhere except on the xy-plane (z=0)',
-                domain: '\\{(x,y,z) : z \\neq 0\\}'
-            },
-            '37b': {
-                isContinuous: false,
-                explanation: 'The denominator x²+z²-1 = 0 when x²+z² = 1',
-                condition: 'x^2 + z^2 \\neq 1',
-                conclusion: 'The function is continuous everywhere except on the cylinder x²+z² = 1',
-                domain: '\\{(x,y,z) : x^2 + z^2 \\neq 1\\}'
-            },
-            '38a': {
-                isContinuous: false,
-                explanation: 'The denominator |y|+|z| = 0 when both y=0 and z=0',
-                condition: '(y,z) \\neq (0,0)',
-                conclusion: 'The function is continuous everywhere except on the x-axis',
-                domain: '\\{(x,y,z) : y \\neq 0 \\text{ or } z \\neq 0\\}'
-            },
-            '38b': {
-                isContinuous: false,
-                explanation: 'The denominator |xy|+|z| = 0 when xy=0 and z=0',
-                condition: 'xy \\neq 0 \\text{ or } z \\neq 0',
-                conclusion: 'The function is continuous everywhere except where both xy=0 and z=0',
-                domain: '\\{(x,y,z) : xy \\neq 0 \\text{ or } z \\neq 0\\}'
-            },
-            '39a': {
-                isContinuous: false,
-                explanation: 'ln requires z-x²-y²-1 > 0, so z > x²+y²+1',
-                condition: 'z > x^2 + y^2 + 1',
-                conclusion: 'The function is continuous above the paraboloid z = x²+y²+1',
-                domain: '\\{(x,y,z) : z > x^2 + y^2 + 1\\}'
-            },
-            '39b': {
-                isContinuous: false,
-                explanation: 'The denominator z-√(x²+y²) = 0 when z = √(x²+y²)',
-                condition: 'z \\neq \\sqrt{x^2 + y^2}',
-                conclusion: 'The function is continuous everywhere except on the cone z = √(x²+y²)',
-                domain: '\\{(x,y,z) : z \\neq \\sqrt{x^2 + y^2}\\}'
-            },
-            '40a': {
-                isContinuous: false,
-                explanation: 'Square root requires 4-x²-y²-z² ≥ 0, so x²+y²+z² ≤ 4',
-                condition: 'x^2 + y^2 + z^2 \\leq 4',
-                conclusion: 'The function is continuous inside and on the sphere of radius 2',
-                domain: '\\{(x,y,z) : x^2 + y^2 + z^2 \\leq 4\\}'
-            },
-            '40b': {
-                isContinuous: false,
-                explanation: 'Requires x²+y²+z²-9 ≥ 0 and 4-√(x²+y²+z²-9) ≠ 0',
-                condition: 'x^2 + y^2 + z^2 \\geq 9, \\sqrt{x^2 + y^2 + z^2 - 9} \\neq 4',
-                conclusion: 'The function is continuous outside the sphere of radius 3, except on the sphere of radius 5',
-                domain: '\\{(x,y,z) : 9 \\leq x^2 + y^2 + z^2 \\neq 25\\}'
-            }
-        };
-
-        return analyses[id] || {
-            isContinuous: false,
-            explanation: 'Analysis not available for this function',
-            condition: '',
-            conclusion: 'Please check the function manually',
-            domain: ''
-        };
-    };
-
-    // Render KaTeX
+    // Initialize MathQuill
     useEffect(() => {
-        if (window.katex) {
-            functions.forEach((func) => {
-                const el = document.getElementById(`func-${func.id}`);
-                if (el) {
-                    try {
-                        window.katex.render(func.latex, el, { throwOnError: false });
-                    } catch {
-                        el.textContent = func.latex;
+        if (window.MathQuill && functionFieldRef.current && !mathFieldRef.current) {
+            const MQ = window.MathQuill.getInterface(2);
+            const mathField = MQ.MathField(functionFieldRef.current, {
+                spaceBehavesLikeTab: true,
+                handlers: {
+                    enter: function () {
+                        analyzeContinuity();
                     }
                 }
             });
+            mathFieldRef.current = mathField;
+            mathField.latex('');
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
+    // Render KaTeX for demo examples
+    useEffect(() => {
+        if (window.katex) {
+            demoExamples.forEach((example) => {
+                const el = document.getElementById(`demo-${example.num}`);
+                if (el) {
+                    try {
+                        window.katex.render(example.latex, el, { throwOnError: false });
+                    } catch {
+                        el.textContent = example.latex;
+                    }
+                }
+            });
+        }
+    }, [demoExamples]);
+
+    // Render KaTeX for solution steps
+    useEffect(() => {
+        if (window.katex && steps.length > 0) {
             steps.forEach((step, index) => {
                 const el = document.getElementById(`step-math-${index}`);
                 if (el && step.math) {
@@ -292,190 +84,733 @@ const ContinuityFinder = () => {
                 }
             });
         }
-    }, [functions, steps]);
+    }, [steps]);
+
+    // Scroll to results
+    useEffect(() => {
+        if (showResult && steps.length > 0) {
+            requestAnimationFrame(() => {
+                if (resultSectionRef.current) {
+                    resultSectionRef.current.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+            });
+        }
+    }, [showResult, steps]);
+
+    const insertSymbol = (latex) => {
+        if (mathFieldRef.current) {
+            mathFieldRef.current.cmd(latex);
+            mathFieldRef.current.focus();
+        }
+    };
+
+    const loadExample = (example) => {
+        if (mathFieldRef.current) {
+            mathFieldRef.current.latex(example.latex);
+            const parsedVars = parsePointToVariables(example.point || '');
+            setVariables(parsedVars);
+            showToastMessage(`Loaded: ${example.desc}`);
+            setTimeout(() => {
+                if (inputSectionRef.current) {
+                    inputSectionRef.current.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+            }, 100);
+        }
+    };
+
+    const parsePointToVariables = (pointStr) => {
+        if (!pointStr) return [{ name: 'x', value: '0' }, { name: 'y', value: '0' }];
+
+        const vars = [];
+        const parts = pointStr.split(',');
+
+        parts.forEach(part => {
+            const trimmed = part.trim();
+            if (trimmed.includes('=')) {
+                const [name, value] = trimmed.split('=');
+                vars.push({ name: name.trim(), value: value.trim() });
+            }
+        });
+
+        return vars.length > 0 ? vars : [{ name: 'x', value: '0' }, { name: 'y', value: '0' }];
+    };
+
+    const clearFunction = () => {
+        if (mathFieldRef.current) {
+            mathFieldRef.current.latex('');
+            mathFieldRef.current.focus();
+        }
+    };
+
+    const showToastMessage = (message) => {
+        setToast({ show: true, message });
+        setTimeout(() => setToast({ show: false, message: '' }), 2000);
+    };
+
+    const addVariable = () => {
+        const nextVarChar = String.fromCharCode(120 + variables.length);
+        setVariables([...variables, { name: nextVarChar, value: '0' }]);
+    };
+
+    const removeVariable = (index) => {
+        if (variables.length > 1) {
+            setVariables(variables.filter((_, i) => i !== index));
+        }
+    };
+
+    const updateVariable = (index, field, value) => {
+        const newVars = [...variables];
+        newVars[index][field] = value;
+        setVariables(newVars);
+    };
+
+    const evaluateSpecialValue = (str) => {
+        if (!str) return 0;
+
+        let expr = str
+            .replace(/\\pi/g, 'pi')
+            .replace(/π/g, 'pi')
+            .replace(/\\ln/g, 'log')
+            .replace(/\\frac\{([^}]+)\}\{([^}]+)\}/g, '($1)/($2)')
+            .replace(/\\sqrt\{([^}]+)\}/g, '(sqrt($1))');
+
+        try {
+            const result = math.evaluate(expr);
+            if (typeof result === 'number') {
+                return result;
+            }
+            const num = parseFloat(str);
+            return isNaN(num) ? 0 : num;
+        } catch {
+            const num = parseFloat(str);
+            return isNaN(num) ? 0 : num;
+        }
+    };
+
+    // Analyze continuity
+    const analyzeContinuity = useCallback(async () => {
+        try {
+            if (!mathFieldRef.current) {
+                showToastMessage('Please enter a function');
+                return;
+            }
+
+            const latex = mathFieldRef.current.latex();
+            if (!latex.trim()) {
+                showToastMessage('Please enter a function');
+                return;
+            }
+
+            console.log('=== ANALYZING CONTINUITY ===');
+            console.log('LaTeX:', latex);
+            console.log('Variables:', variables);
+
+            const expr = latexToMathJs(latex);
+            console.log('Expression:', expr);
+
+            const analysisSteps = [];
+
+            // Step 1: Function identification
+            analysisSteps.push({
+                title: 'Step 1: Function Analysis',
+                explanation: `Analyzing f(${variables.map(v => v.name).join(',')}) = ${latex}`,
+                math: latex
+            });
+
+            // Step 2: Domain analysis
+            const domainAnalysis = analyzeDomain(latex, expr, variables);
+            analysisSteps.push({
+                title: 'Step 2: Domain Analysis',
+                explanation: domainAnalysis.explanation,
+                math: domainAnalysis.domainLatex
+            });
+
+            // Step 3: Check continuity at point (if specified)
+            let continuityResult = null;
+            if (analysisType === 'point') {
+                continuityResult = checkContinuityAtPoint(expr, variables);
+                analysisSteps.push({
+                    title: 'Step 3: Continuity at Point',
+                    explanation: continuityResult.explanation,
+                    math: continuityResult.math
+                });
+            } else {
+                analysisSteps.push({
+                    title: 'Step 3: General Continuity',
+                    explanation: domainAnalysis.continuityExplanation,
+                    math: domainAnalysis.continuityCondition
+                });
+            }
+
+            // Step 4: Conclusion
+            const conclusion = generateConclusion(domainAnalysis, continuityResult, variables);
+            analysisSteps.push({
+                title: 'Step 4: Conclusion',
+                explanation: conclusion.explanation,
+                math: conclusion.math
+            });
+
+            setResult(conclusion.isContinuous);
+            setSteps(analysisSteps);
+            setShowResult(true);
+            showToastMessage('Analysis complete!');
+
+        } catch (error) {
+            console.error('ERROR:', error);
+            showToastMessage('Error: ' + error.message);
+        }
+    }, [variables, analysisType]);
+
+    // Analyze the domain of the function
+    const analyzeDomain = (latex, expr, vars) => {
+        let restrictions = [];
+        let domainLatex = '\\mathbb{R}^{' + vars.length + '}';
+        let explanation = 'Analyzing the domain of the function...';
+        let continuityExplanation = '';
+        let continuityCondition = '';
+
+        // Check for ln (requires positive argument)
+        if (latex.includes('\\ln') || latex.includes('\\log')) {
+            restrictions.push('logarithm');
+            const lnMatch = latex.match(/\\ln\(([^)]+)\)/) || latex.match(/\\ln\{([^}]+)\}/);
+            if (lnMatch) {
+                const arg = lnMatch[1];
+                explanation = `The natural logarithm requires its argument to be positive: ${arg} > 0`;
+                domainLatex = `\\{(${vars.map(v => v.name).join(',')}) : ${arg} > 0\\}`;
+                continuityExplanation = `The function is continuous wherever ${arg} > 0`;
+                continuityCondition = arg + ' > 0';
+            }
+        }
+
+        // Check for sqrt (requires non-negative argument)
+        if (latex.includes('\\sqrt')) {
+            restrictions.push('square root');
+            const sqrtMatch = latex.match(/\\sqrt\{([^}]+)\}/);
+            if (sqrtMatch) {
+                const arg = sqrtMatch[1];
+                explanation = `The square root requires its argument to be non-negative: ${arg} ≥ 0`;
+                domainLatex = `\\{(${vars.map(v => v.name).join(',')}) : ${arg} \\geq 0\\}`;
+                continuityExplanation = `The function is continuous wherever ${arg} ≥ 0`;
+                continuityCondition = arg + ' \\geq 0';
+            }
+        }
+
+        // Check for fractions (denominator cannot be zero)
+        if (latex.includes('\\frac')) {
+            restrictions.push('fraction');
+            const fracMatch = latex.match(/\\frac\{[^}]+\}\{([^}]+)\}/);
+            if (fracMatch) {
+                const denom = fracMatch[1];
+                explanation = `The denominator cannot be zero: ${denom} ≠ 0`;
+                domainLatex = `\\{(${vars.map(v => v.name).join(',')}) : ${denom} \\neq 0\\}`;
+                continuityExplanation = `The function is continuous wherever ${denom} ≠ 0`;
+                continuityCondition = denom + ' \\neq 0';
+            }
+        }
+
+        // Check for division by variable expressions
+        const divPatterns = [
+            /\/(xy|x\*y)/i,
+            /\/([a-z])/i,
+            /\/(x\^2[+-]y)/i,
+        ];
+
+        for (const pattern of divPatterns) {
+            if (expr.match(pattern)) {
+                const match = expr.match(pattern);
+                if (match && !restrictions.includes('fraction')) {
+                    restrictions.push('division');
+                    const divisor = match[1];
+                    explanation = `Division requires ${divisor} ≠ 0`;
+                    domainLatex = `\\{(${vars.map(v => v.name).join(',')}) : ${divisor} \\neq 0\\}`;
+                    continuityExplanation = `The function is continuous wherever ${divisor} ≠ 0`;
+                    continuityCondition = divisor + ' \\neq 0';
+                }
+            }
+        }
+
+        // If no restrictions found
+        if (restrictions.length === 0) {
+            explanation = 'This function is composed of continuous elementary functions (polynomials, trigonometric functions, exponentials)';
+            continuityExplanation = `The function is continuous everywhere in its domain (all of ℝ${vars.length > 1 ? '^' + vars.length : ''})`;
+            continuityCondition = '\\text{Continuous everywhere}';
+        }
+
+        return {
+            restrictions,
+            domainLatex,
+            explanation,
+            continuityExplanation,
+            continuityCondition
+        };
+    };
+
+    // Check continuity at a specific point
+    const checkContinuityAtPoint = (expr, vars) => {
+        try {
+            const scope = {};
+            vars.forEach(v => {
+                scope[v.name] = evaluateSpecialValue(v.value);
+            });
+
+            // Try to evaluate at the point
+            const valueAtPoint = math.evaluate(expr, scope);
+
+            if (typeof valueAtPoint === 'number' && isFinite(valueAtPoint)) {
+                return {
+                    isContinuous: true,
+                    explanation: `At point (${vars.map(v => `${v.name}=${v.value}`).join(', ')}), the function equals ${valueAtPoint.toFixed(4)}. The function is defined and finite at this point.`,
+                    math: `f(${vars.map(v => v.value).join(',')}) = ${valueAtPoint.toFixed(4)}`
+                };
+            } else if (valueAtPoint === Infinity || valueAtPoint === -Infinity) {
+                return {
+                    isContinuous: false,
+                    explanation: `At point (${vars.map(v => `${v.name}=${v.value}`).join(', ')}), the function approaches infinity. The function is not continuous at this point.`,
+                    math: `f(${vars.map(v => v.value).join(',')}) = ${valueAtPoint === Infinity ? '\\infty' : '-\\infty'}`
+                };
+            } else {
+                return {
+                    isContinuous: false,
+                    explanation: `At point (${vars.map(v => `${v.name}=${v.value}`).join(', ')}), the function is undefined.`,
+                    math: `f(${vars.map(v => v.value).join(',')}) = \\text{undefined}`
+                };
+            }
+        } catch (error) {
+            return {
+                isContinuous: false,
+                explanation: `At point (${vars.map(v => `${v.name}=${v.value}`).join(', ')}), the function is undefined or has a discontinuity.`,
+                math: `f(${vars.map(v => v.value).join(',')}) = \\text{undefined}`
+            };
+        }
+    };
+
+    // Generate conclusion
+    const generateConclusion = (domainAnalysis, continuityResult, vars) => {
+        if (analysisType === 'point' && continuityResult) {
+            return {
+                isContinuous: continuityResult.isContinuous ? 'Continuous' : 'Discontinuous',
+                explanation: continuityResult.isContinuous
+                    ? `The function is continuous at the point (${vars.map(v => `${v.name}=${v.value}`).join(', ')}).`
+                    : `The function is NOT continuous at the point (${vars.map(v => `${v.name}=${v.value}`).join(', ')}).`,
+                math: continuityResult.math
+            };
+        } else {
+            const hasRestrictions = domainAnalysis.restrictions.length > 0;
+            return {
+                isContinuous: hasRestrictions ? 'Continuous on Domain' : 'Continuous Everywhere',
+                explanation: domainAnalysis.continuityExplanation,
+                math: domainAnalysis.domainLatex
+            };
+        }
+    };
 
     return (
-        <div className="continuity-finder-container">
+        <div className="app-body">
             <style>{`
-                .continuity-finder-container {
-                    max-width: 1400px;
-                    margin: 0 auto;
-                    padding: 20px;
-                    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                * {
+                    margin: 0;
+                    padding: 0;
+                    box-sizing: border-box;
+                }
+
+                .app-body {
+                    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
                     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
                     min-height: 100vh;
+                    padding: 20px;
                 }
 
-                .header {
+                .app-container {
+                    max-width: 1200px;
+                    margin: 0 auto;
+                }
+
+                .app-title {
                     text-align: center;
                     color: white;
-                    margin-bottom: 30px;
-                }
-
-                .header h1 {
-                    font-size: 2.5em;
+                    font-size: 3em;
+                    font-weight: 700;
                     margin-bottom: 10px;
-                    text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+                    text-shadow: 2px 4px 6px rgba(0, 0, 0, 0.2);
                 }
 
-                .header p {
-                    font-size: 1.1em;
-                    opacity: 0.9;
+                .app-subtitle {
+                    text-align: center;
+                    color: rgba(255, 255, 255, 0.9);
+                    font-size: 1.2em;
+                    margin-bottom: 40px;
                 }
 
-                .functions-grid {
-                    display: grid;
-                    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-                    gap: 20px;
-                    margin-bottom: 30px;
-                }
-
-                .function-card {
+                .demo-section {
                     background: white;
-                    border-radius: 15px;
-                    padding: 20px;
-                    box-shadow: 0 8px 20px rgba(0,0,0,0.2);
-                    transition: transform 0.3s, box-shadow 0.3s;
-                    cursor: pointer;
+                    border-radius: 20px;
+                    padding: 30px;
+                    margin-bottom: 30px;
+                    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
                 }
 
-                .function-card:hover {
-                    transform: translateY(-5px);
-                    box-shadow: 0 12px 30px rgba(0,0,0,0.3);
+                .section-title {
+                    font-size: 1.8em;
+                    font-weight: 600;
+                    color: #333;
+                    margin-bottom: 20px;
+                    text-align: center;
                 }
 
-                .function-card.selected {
-                    border: 3px solid #667eea;
-                    background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+                .category-section {
+                    margin-bottom: 30px;
                 }
 
-                .function-title {
-                    font-weight: bold;
+                .category-title {
+                    font-size: 1.3em;
+                    font-weight: 600;
                     color: #667eea;
-                    margin-bottom: 10px;
-                    font-size: 0.9em;
+                    margin-bottom: 15px;
+                    padding-bottom: 8px;
+                    border-bottom: 2px solid #667eea;
                 }
 
-                .function-math {
+                .examples-grid {
+                    display: grid;
+                    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+                    gap: 15px;
+                }
+
+                .example-card {
+                    background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+                    padding: 20px;
+                    border-radius: 12px;
+                    cursor: pointer;
+                    transition: all 0.3s ease;
+                    border: 2px solid transparent;
+                }
+
+                .example-card:hover {
+                    transform: translateY(-3px);
+                    box-shadow: 0 8px 20px rgba(102, 126, 234, 0.3);
+                    border-color: #667eea;
+                }
+
+                .example-label {
+                    font-size: 0.85em;
+                    color: #666;
+                    margin-bottom: 8px;
+                }
+
+                .example-function {
                     min-height: 40px;
                     display: flex;
                     align-items: center;
                     justify-content: center;
-                    font-size: 1.2em;
-                    margin: 15px 0;
+                    font-size: 1.1em;
                 }
 
-                .function-vars {
-                    font-size: 0.85em;
-                    color: #666;
-                    margin-top: 10px;
-                }
-
-                .analyze-button {
-                    width: 100%;
-                    padding: 10px;
-                    background: #667eea;
-                    color: white;
-                    border: none;
-                    border-radius: 8px;
-                    font-size: 1em;
-                    cursor: pointer;
-                    transition: background 0.3s;
-                    margin-top: 10px;
-                }
-
-                .analyze-button:hover {
-                    background: #5568d3;
-                }
-
-                .analyze-button:disabled {
-                    background: #ccc;
-                    cursor: not-allowed;
-                }
-
-                .point-input-section {
+                .input-section {
                     background: white;
-                    border-radius: 15px;
-                    padding: 25px;
-                    box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+                    border-radius: 20px;
+                    padding: 30px;
                     margin-bottom: 30px;
+                    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
                 }
 
-                .point-input-section h3 {
-                    color: #667eea;
-                    margin-bottom: 15px;
+                .limit-builder {
+                    margin-bottom: 25px;
                 }
 
-                .point-input-section input {
-                    width: 100%;
-                    padding: 12px;
+                .limit-display {
+                    display: flex;
+                    align-items: center;
+                    gap: 15px;
+                    margin-bottom: 20px;
+                    flex-wrap: wrap;
+                }
+
+                .limit-part {
+                    font-size: 1.5em;
+                    font-weight: 600;
+                    color: #333;
+                }
+
+                .limit-label {
+                    font-family: 'Times New Roman', serif;
+                }
+
+                .variables-container {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 10px;
+                }
+
+                .variable-row {
+                    display: flex;
+                    align-items: center;
+                    gap: 10px;
+                }
+
+                .variable-name-input {
+                    width: 60px;
+                    padding: 8px 12px;
                     border: 2px solid #e0e0e0;
                     border-radius: 8px;
-                    font-size: 1em;
-                    margin-bottom: 10px;
+                    font-size: 1.1em;
+                    text-align: center;
+                    transition: border 0.3s;
                 }
 
-                .point-input-section input:focus {
+                .variable-name-input:focus {
                     outline: none;
                     border-color: #667eea;
                 }
 
-                .result-section {
-                    background: white;
-                    border-radius: 15px;
-                    padding: 30px;
-                    box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+                .limit-arrow {
+                    font-size: 1.3em;
+                    color: #667eea;
                 }
 
-                .result-box {
-                    padding: 20px;
-                    border-radius: 10px;
+                .limit-input-inline {
+                    width: 100px;
+                    padding: 8px 12px;
+                    border: 2px solid #e0e0e0;
+                    border-radius: 8px;
+                    font-size: 1.1em;
+                    text-align: center;
+                    transition: border 0.3s;
+                }
+
+                .limit-input-inline:focus {
+                    outline: none;
+                    border-color: #667eea;
+                }
+
+                .add-var-btn, .remove-var-btn {
+                    width: 32px;
+                    height: 32px;
+                    border-radius: 50%;
+                    border: none;
+                    font-size: 1.3em;
+                    cursor: pointer;
+                    transition: all 0.3s;
+                }
+
+                .add-var-btn {
+                    background: #667eea;
+                    color: white;
+                }
+
+                .add-var-btn:hover {
+                    background: #5568d3;
+                    transform: scale(1.1);
+                }
+
+                .remove-var-btn {
+                    background: #ff6b6b;
+                    color: white;
+                }
+
+                .remove-var-btn:hover {
+                    background: #ee5a52;
+                    transform: scale(1.1);
+                }
+
+                .analysis-type-selector {
+                    display: flex;
+                    gap: 15px;
                     margin-bottom: 20px;
+                    padding: 15px;
+                    background: #f8f9fa;
+                    border-radius: 12px;
                 }
 
-                .result-box.continuous {
-                    background: linear-gradient(135deg, #d4fc79 0%, #96e6a1 100%);
-                    border-left: 5px solid #4caf50;
+                .radio-option {
+                    display: flex;
+                    align-items: center;
+                    gap: 8px;
+                    cursor: pointer;
                 }
 
-                .result-box.discontinuous {
-                    background: linear-gradient(135deg, #ffeaa7 0%, #fdcb6e 100%);
-                    border-left: 5px solid #ff9800;
+                .radio-option input[type="radio"] {
+                    width: 18px;
+                    height: 18px;
+                    cursor: pointer;
                 }
 
-                .result-title {
-                    font-size: 1.4em;
-                    font-weight: bold;
+                .radio-option label {
+                    font-size: 1em;
+                    cursor: pointer;
+                }
+
+                .function-label {
+                    font-size: 1.1em;
+                    color: #333;
                     margin-bottom: 10px;
+                    font-weight: 500;
+                }
+
+                .function-field {
+                    min-height: 60px;
+                    padding: 15px;
+                    border: 2px solid #e0e0e0;
+                    border-radius: 12px;
+                    font-size: 1.3em;
+                    transition: border 0.3s;
+                    background: white;
+                }
+
+                .function-field:focus-within {
+                    border-color: #667eea;
+                }
+
+                .toolbar-section {
+                    margin-top: 20px;
+                }
+
+                .toolbar-title {
+                    font-size: 0.95em;
+                    color: #666;
+                    margin-bottom: 10px;
+                }
+
+                .toolbar {
+                    display: flex;
+                    flex-wrap: wrap;
+                    gap: 8px;
+                }
+
+                .toolbar-button {
+                    padding: 8px 12px;
+                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                    color: white;
+                    border: none;
+                    border-radius: 8px;
+                    cursor: pointer;
+                    font-size: 0.95em;
+                    transition: all 0.3s;
+                }
+
+                .toolbar-button:hover {
+                    transform: translateY(-2px);
+                    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+                }
+
+                .actions {
+                    display: flex;
+                    gap: 15px;
+                    margin-top: 25px;
+                }
+
+                .calculate-button, .clear-button {
+                    flex: 1;
+                    padding: 15px 30px;
+                    border: none;
+                    border-radius: 12px;
+                    font-size: 1.1em;
+                    font-weight: 600;
+                    cursor: pointer;
+                    transition: all 0.3s;
+                }
+
+                .calculate-button {
+                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                    color: white;
+                    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+                }
+
+                .calculate-button:hover {
+                    transform: translateY(-2px);
+                    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.5);
+                }
+
+                .clear-button {
+                    background: #f5f5f5;
                     color: #333;
                 }
 
-                .result-text {
-                    font-size: 1.1em;
-                    line-height: 1.6;
-                    color: #555;
+                .clear-button:hover {
+                    background: #e0e0e0;
                 }
 
-                .steps-container {
-                    margin-top: 30px;
+                .result-section {
+                    background: white;
+                    border-radius: 20px;
+                    padding: 30px;
+                    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+                    animation: slideUp 0.5s ease;
+                }
+
+                @keyframes slideUp {
+                    from {
+                        opacity: 0;
+                        transform: translateY(30px);
+                    }
+                    to {
+                        opacity: 1;
+                        transform: translateY(0);
+                    }
+                }
+
+                .answer-box {
+                    background: linear-gradient(135deg, #84fab0 0%, #8fd3f4 100%);
+                    padding: 25px;
+                    border-radius: 15px;
+                    margin-bottom: 30px;
+                    box-shadow: 0 4px 15px rgba(132, 250, 176, 0.3);
+                }
+
+                .answer-label {
+                    font-size: 1.1em;
+                    color: #333;
+                    margin-bottom: 10px;
+                    font-weight: 600;
+                }
+
+                .answer-value {
+                    font-size: 2em;
+                    font-weight: 700;
+                    color: #2d3748;
+                }
+
+                .steps-box {
+                    background: #f8f9fa;
+                    border-radius: 15px;
+                    padding: 25px;
+                }
+
+                .steps-title {
+                    font-size: 1.5em;
+                    font-weight: 600;
+                    color: #333;
+                    margin-bottom: 20px;
+                }
+
+                .steps-content {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 20px;
                 }
 
                 .step-item {
-                    background: #f8f9fa;
+                    background: white;
                     padding: 20px;
-                    border-radius: 10px;
-                    margin-bottom: 15px;
+                    border-radius: 12px;
                     border-left: 4px solid #667eea;
+                    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
                 }
 
-                .step-title {
-                    font-weight: bold;
+                .step-number {
+                    font-size: 1.1em;
+                    font-weight: 600;
                     color: #667eea;
                     margin-bottom: 10px;
-                    font-size: 1.1em;
                 }
 
-                .step-explanation {
+                .step-content {
+                    font-size: 1em;
                     color: #555;
                     line-height: 1.6;
                     margin-bottom: 10px;
@@ -483,110 +818,229 @@ const ContinuityFinder = () => {
 
                 .step-math {
                     padding: 15px;
-                    background: white;
+                    background: #f8f9fa;
                     border-radius: 8px;
-                    margin-top: 10px;
                     min-height: 40px;
                     display: flex;
                     align-items: center;
                     justify-content: center;
+                    margin-top: 10px;
                 }
 
-                .loading {
-                    text-align: center;
-                    padding: 40px;
-                    font-size: 1.2em;
-                    color: #667eea;
+                .toast {
+                    position: fixed;
+                    bottom: 30px;
+                    right: 30px;
+                    background: #333;
+                    color: white;
+                    padding: 15px 25px;
+                    border-radius: 12px;
+                    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+                    opacity: 0;
+                    transform: translateY(20px);
+                    transition: all 0.3s;
+                    z-index: 1000;
+                }
+
+                .toast-show {
+                    opacity: 1;
+                    transform: translateY(0);
                 }
 
                 @media (max-width: 768px) {
-                    .functions-grid {
+                    .app-title {
+                        font-size: 2em;
+                    }
+
+                    .examples-grid {
                         grid-template-columns: 1fr;
                     }
 
-                    .header h1 {
-                        font-size: 2em;
+                    .actions {
+                        flex-direction: column;
                     }
                 }
             `}</style>
 
-            <div className="header">
-                <h1>🔍 Continuity Finder</h1>
-                <p>Analyze the continuity of multivariable functions (Exercises 31-40)</p>
-            </div>
+            <div className="app-container">
+                <h1 className="app-title">Continuity Analyzer</h1>
+                <div className="app-subtitle">Multi-Variable Function Continuity Analysis</div>
 
-            <div className="functions-grid">
-                {functions.map((func) => (
-                    <div
-                        key={func.id}
-                        className={`function-card ${selectedFunction?.id === func.id ? 'selected' : ''}`}
-                        onClick={() => setSelectedFunction(func)}
-                    >
-                        <div className="function-title">{func.desc}</div>
-                        <div className="function-math" id={`func-${func.id}`}></div>
-                        <div className="function-vars">
-                            Variables: {func.vars.join(', ')}
+                {/* Demo Examples */}
+                <div className="demo-section">
+                    <div className="section-title">📚 Example Functions</div>
+
+                    {['Two Variables', 'Three Variables'].map(category => (
+                        <div key={category} className="category-section">
+                            <div className="category-title">{category}</div>
+                            <div className="examples-grid">
+                                {demoExamples
+                                    .filter(ex => ex.category === category)
+                                    .map(example => (
+                                        <div
+                                            key={example.num}
+                                            className="example-card"
+                                            onClick={() => loadExample(example)}
+                                        >
+                                            <div className="example-label">Ex {example.num}</div>
+                                            <div className="example-function" id={`demo-${example.num}`}></div>
+                                        </div>
+                                    ))}
+                            </div>
                         </div>
-                        <button
-                            className="analyze-button"
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                analyzeContinuity(func, selectedPoint);
-                            }}
-                            disabled={loading}
-                        >
-                            {loading && selectedFunction?.id === func.id ? 'Analyzing...' : 'Analyze Continuity'}
+                    ))}
+                </div>
+
+                {/* Input Section */}
+                <div className="input-section" ref={inputSectionRef}>
+                    <div className="section-title">Enter Your Function</div>
+
+                    <div className="limit-builder">
+                        {/* Analysis Type Selector */}
+                        <div className="analysis-type-selector">
+                            <div className="radio-option">
+                                <input
+                                    type="radio"
+                                    id="general"
+                                    name="analysisType"
+                                    value="general"
+                                    checked={analysisType === 'general'}
+                                    onChange={(e) => setAnalysisType(e.target.value)}
+                                />
+                                <label htmlFor="general">General Continuity Analysis</label>
+                            </div>
+                            <div className="radio-option">
+                                <input
+                                    type="radio"
+                                    id="point"
+                                    name="analysisType"
+                                    value="point"
+                                    checked={analysisType === 'point'}
+                                    onChange={(e) => setAnalysisType(e.target.value)}
+                                />
+                                <label htmlFor="point">Continuity at Specific Point</label>
+                            </div>
+                        </div>
+
+                        {analysisType === 'point' && (
+                            <div className="limit-display">
+                                <div className="limit-part">
+                                    <span className="limit-label">at point</span>
+                                </div>
+
+                                <div className="variables-container">
+                                    {variables.map((variable, index) => (
+                                        <div key={index} className="variable-row">
+                                            <input
+                                                type="text"
+                                                value={variable.name}
+                                                onChange={(e) => updateVariable(index, 'name', e.target.value)}
+                                                className="variable-name-input"
+                                                placeholder="x"
+                                                maxLength="3"
+                                            />
+                                            <span className="limit-arrow">=</span>
+                                            <input
+                                                type="text"
+                                                value={variable.value}
+                                                onChange={(e) => updateVariable(index, 'value', e.target.value)}
+                                                className="limit-input-inline"
+                                                placeholder="0"
+                                            />
+                                            {variables.length > 1 && (
+                                                <button
+                                                    onClick={() => removeVariable(index)}
+                                                    className="remove-var-btn"
+                                                    title="Remove variable"
+                                                >
+                                                    ×
+                                                </button>
+                                            )}
+                                            {index === variables.length - 1 && variables.length < 5 && (
+                                                <button
+                                                    onClick={addVariable}
+                                                    className="add-var-btn"
+                                                    title="Add variable"
+                                                >
+                                                    +
+                                                </button>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        <div className="function-label">
+                            Enter function f({variables.map(v => v.name).join(', ')}):
+                        </div>
+                        <div ref={functionFieldRef} className="function-field" />
+
+                        {/* Toolbar */}
+                        <div className="toolbar-section">
+                            <div className="toolbar-title">Quick Insert Symbols</div>
+                            <div className="toolbar">
+                                <button onClick={() => insertSymbol('\\frac')} className="toolbar-button">x/y</button>
+                                <button onClick={() => insertSymbol('\\sqrt')} className="toolbar-button">√</button>
+                                <button onClick={() => insertSymbol('^')} className="toolbar-button">x^n</button>
+                                <button onClick={() => insertSymbol('\\sin')} className="toolbar-button">sin</button>
+                                <button onClick={() => insertSymbol('\\cos')} className="toolbar-button">cos</button>
+                                <button onClick={() => insertSymbol('\\tan')} className="toolbar-button">tan</button>
+                                <button onClick={() => insertSymbol('\\ln')} className="toolbar-button">ln</button>
+                                <button onClick={() => insertSymbol('\\log')} className="toolbar-button">log</button>
+                                <button onClick={() => insertSymbol('e^')} className="toolbar-button">e^x</button>
+                                <button onClick={() => insertSymbol('\\pi')} className="toolbar-button">π</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Actions */}
+                    <div className="actions">
+                        <button onClick={analyzeContinuity} className="calculate-button">
+                            🔍 Analyze Continuity
+                        </button>
+                        <button onClick={clearFunction} className="clear-button">
+                            🗑️ Clear
                         </button>
                     </div>
-                ))}
-            </div>
-
-            {selectedFunction && (
-                <div className="point-input-section">
-                    <h3>Optional: Test at a specific point</h3>
-                    <input
-                        type="text"
-                        placeholder={`Enter point (e.g., ${selectedFunction.vars.map((v, i) => `${v}=0`).join(', ')})`}
-                        value={selectedPoint}
-                        onChange={(e) => setSelectedPoint(e.target.value)}
-                    />
-                    <p style={{ fontSize: '0.9em', color: '#666', marginTop: '5px' }}>
-                        Leave empty for general continuity analysis
-                    </p>
                 </div>
-            )}
 
-            {continuityResult && (
-                <div className="result-section">
-                    <div className={`result-box ${continuityResult.isContinuous ? 'continuous' : 'discontinuous'}`}>
-                        <div className="result-title">
-                            {continuityResult.isContinuous ? '✓ Continuous' : '⚠ Not Continuous Everywhere'}
-                        </div>
-                        <div className="result-text">
-                            {continuityResult.conclusion}
-                        </div>
-                    </div>
-
-                    <div className="steps-container">
-                        <h2 style={{ color: '#667eea', marginBottom: '20px' }}>📝 Detailed Analysis</h2>
-                        {steps.map((step, index) => (
-                            <div key={index} className="step-item">
-                                <div className="step-title">{step.title}</div>
-                                <div className="step-explanation">{step.explanation}</div>
-                                {step.math && (
-                                    <div className="step-math" id={`step-math-${index}`}></div>
-                                )}
+                {/* Results */}
+                {showResult && (
+                    <div className="result-section" ref={resultSectionRef}>
+                        <div className="answer-box">
+                            <div className="answer-label">
+                                Result:
                             </div>
-                        ))}
-                    </div>
-                </div>
-            )}
+                            <div className="answer-value">
+                                {result}
+                            </div>
+                        </div>
 
-            {loading && (
-                <div className="loading">
-                    <div>⏳ Analyzing continuity...</div>
-                </div>
-            )}
+                        <div className="steps-box">
+                            <div className="steps-title">📝 Detailed Analysis</div>
+                            <div className="steps-content">
+                                {steps.map((step, index) => (
+                                    <div key={index} className="step-item">
+                                        <div className="step-number">{step.title}</div>
+                                        <div className="step-content">{step.explanation}</div>
+                                        {step.math && (
+                                            <div className="step-math" id={`step-math-${index}`}></div>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* Toast */}
+                {toast.show && (
+                    <div className={`toast ${toast.show ? 'toast-show' : ''}`}>
+                        {toast.message}
+                    </div>
+                )}
+            </div>
         </div>
     );
 };
