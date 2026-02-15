@@ -1,278 +1,202 @@
-<div align="center">
+# CalcVoyager
 
-# 🚀 React App Template
+A modern, interactive calculator application for mathematical exploration and computation.
 
-### A Modern, Production-Ready React Starter Kit
+## Overview
 
-[![MIT License](https://img.shields.io/badge/License-MIT-green.svg)](https://choosealicense.com/licenses/mit/)
-[![React](https://img.shields.io/badge/React-18.x-61dafb?logo=react)](https://reactjs.org/)
-[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](http://makeapullrequest.com)
-[![Maintenance](https://img.shields.io/badge/Maintained%3F-yes-green.svg)](https://github.com/SENODROOM/React-App-Template/graphs/commit-activity)
+CalcVoyager is a feature-rich calculator designed to make mathematical computations intuitive and accessible. Whether you're solving simple arithmetic or complex equations, CalcVoyager provides the tools you need for your mathematical journey.
 
-[Features](#-features) • [Quick Start](#-quick-start) • [Structure](#-project-structure) • [Documentation](#-documentation) • [Support](#-support)
+## Features
 
-</div>
+- **Basic Operations**: Addition, subtraction, multiplication, and division
+- **Advanced Functions**: Trigonometric, logarithmic, and exponential calculations
+- **User-Friendly Interface**: Clean, intuitive design for seamless calculations
+- **Calculation History**: Track and review your previous computations
+- **Responsive Design**: Works seamlessly across desktop and mobile devices
+- **Keyboard Support**: Full keyboard navigation for efficient input
 
----
-
-## ✨ Features
-
-<table>
-<tr>
-<td>
-
-### 🎯 Core Features
-- **⚡ Lightning Fast** - Optimized build and load times
-- **🎨 Fully Customizable** - Adapt to any design system
-- **📱 Responsive** - Mobile-first approach
-- **♿ Accessible** - WCAG compliant components
-
-</td>
-<td>
-
-### 🛠️ Developer Experience
-- **🔥 Hot Reload** - Instant feedback
-- **📦 Component Library** - 20+ ready-to-use components
-- **🎭 Clean Architecture** - Scalable folder structure
-- **🔐 Route Protection** - Built-in auth guards
-
-</td>
-</tr>
-</table>
-
-### 🎪 What's Included
-
-```
-✅ Routing System          → React Router v6 with nested routes
-✅ Reusable Components     → Buttons, Forms, Cards, Modals, Tables & more
-✅ Pre-built Pages         → Dashboard, Auth, Landing, 404 & Success pages
-✅ Layout Templates        → Header, Footer, Sidebar configurations
-✅ State Management        → Context API ready (Redux compatible)
-✅ Styling System          → CSS/SCSS/Tailwind/Styled Components
-✅ Utilities & Helpers     → Common functions to speed up development
-✅ ESLint & Prettier       → Code quality and formatting
-```
-
----
-
-## 📂 Project Structure
-
-```
-react-app-template/
-│
-├── 📁 public/                  # Static assets
-│   ├── index.html
-│   ├── favicon.ico
-│   └── manifest.json
-│
-├── 📁 src/
-│   │
-│   ├── 📁 components/          # 🧩 Reusable UI components
-│   │   ├── Header.jsx
-│   │   ├── Footer.jsx
-│   │   └── Layout.jsx
-│   │
-│   ├── 📁 pages/               # 📄 Page components
-│   │   └── Home.jsx
-│   │
-│   ├── 📁 contextproviders/    # 🌐 State management
-│   │
-│   ├── 📁 utils/               # 🔧 Helper functions
-│   │   └── ScrollToTop.js
-│   │
-│   ├── 📁 assets/              # 🎨 Static files
-│   │   ├── images/
-│   │   ├── icons/
-│   │   └── styles/
-│   │
-│   ├── App.jsx                 # 🏠 Main App component
-│   ├── App.css
-│   └── index.js                # Entry point
-│
-├── .gitignore
-├── package.json
-├── package-lock.json
-├── README.md
-└── LICENSE
-```
-
----
-
-## 🚀 Quick Start
+## Installation
 
 ### Prerequisites
 
-Make sure you have the following installed:
-- **Node.js** (v16 or higher)
-- **npm** or **yarn**
+- Node.js (version 14.x or higher)
+- npm or yarn package manager
 
-### Installation
+### Setup
 
+1. Clone the repository:
 ```bash
-# 1️⃣ Clone the repository
-git clone https://github.com/SENODROOM/React-App-Template.git
+git clone https://github.com/SENODROOM/CalcVoyager.git
+cd CalcVoyager
+```
 
-# 2️⃣ Navigate to project directory
-cd React-App-Template
-
-# 3️⃣ Install dependencies
+2. Install dependencies:
+```bash
 npm install
 # or
 yarn install
+```
 
-# 4️⃣ Start development server
+3. Start the development server:
+```bash
 npm start
 # or
 yarn start
 ```
 
-🎉 **That's it!** Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+4. Open your browser and navigate to `http://localhost:3000`
 
----
+## Usage
 
-## 🎨 Customization
+### Basic Calculations
 
-### Change Styling Framework
+1. Enter numbers using the on-screen buttons or your keyboard
+2. Select an operation (+, -, ×, ÷)
+3. Press equals (=) to see the result
 
-```bash
-# Install Tailwind CSS
-npm install -D tailwindcss postcss autoprefixer
-npx tailwindcss init
+### Advanced Features
 
-# Install Material-UI
-npm install @mui/material @emotion/react @emotion/styled
+- **Scientific Mode**: Access advanced mathematical functions
+- **Memory Functions**: Store and recall values (M+, M-, MR, MC)
+- **Clear Functions**: AC (All Clear) or C (Clear entry)
 
-# Install Styled Components
-npm install styled-components
+### Keyboard Shortcuts
+
+- `0-9`: Number input
+- `+, -, *, /`: Basic operations
+- `Enter`: Calculate result
+- `Escape`: Clear current entry
+- `Backspace`: Delete last digit
+
+## Technology Stack
+
+- **Frontend**: React.js / HTML5 / CSS3
+- **State Management**: React Hooks / Context API
+- **Build Tool**: Webpack / Create React App
+- **Testing**: Jest / React Testing Library
+
+## Project Structure
+
+```
+CalcVoyager/
+├── public/
+│   ├── index.html
+│   └── favicon.ico
+├── src/
+│   ├── components/
+│   │   ├── Calculator.js
+│   │   ├── Display.js
+│   │   └── Button.js
+│   ├── utils/
+│   │   └── calculations.js
+│   ├── styles/
+│   │   └── App.css
+│   ├── App.js
+│   └── index.js
+├── package.json
+└── README.md
 ```
 
-### Add State Management
+## Contributing
 
-```bash
-# Redux Toolkit
-npm install @reduxjs/toolkit react-redux
+Contributions are welcome! Please follow these steps:
 
-# Zustand (lightweight alternative)
-npm install zustand
-```
-
----
-
-## 📚 Documentation
-
-### Components
-
-| Component | Description | Props |
-|-----------|-------------|-------|
-| `<Button>` | Customizable button component | `variant`, `size`, `onClick` |
-| `<Card>` | Container card with shadow | `title`, `children` |
-| `<Modal>` | Overlay modal dialog | `isOpen`, `onClose`, `children` |
-| `<Form>` | Form wrapper with validation | `onSubmit`, `schema` |
-| `<Table>` | Data table with sorting | `data`, `columns`, `onSort` |
-
-
-## 🛠️ Available Scripts
-
-In the project directory, you can run:
-
-### `npm start`
-Runs the app in development mode at [http://localhost:3000](http://localhost:3000)
-
-### `npm test`
-Launches the test runner in interactive watch mode
-
-### `npm run build`
-Builds the app for production to the `build` folder
-
-### `npm run eject`
-**Note: This is a one-way operation!** Ejects from Create React App
-
----
-
-## 🛣️ Roadmap
-
-- [x] Core routing system
-- [x] Basic component library
-- [x] Authentication templates
-- [ ] Dark mode support
-- [ ] Internationalization (i18n)
-- [ ] Advanced form validation
-- [ ] Testing suite (Jest + RTL)
-- [ ] Storybook integration
-- [ ] TypeScript version
-
----
-
-## 🤝 Contributing
-
-Contributions are what make the open source community amazing! Any contributions you make are **greatly appreciated**.
-
-1. Fork the Project
-2. Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the Branch (`git push origin feature/AmazingFeature`)
+1. Fork the repository
+2. Create a new branch (`git checkout -b feature/YourFeature`)
+3. Commit your changes (`git commit -m 'Add some feature'`)
+4. Push to the branch (`git push origin feature/YourFeature`)
 5. Open a Pull Request
 
----
+### Code Style
 
-## 💖 Support
+- Follow the existing code formatting
+- Write clear, descriptive commit messages
+- Add comments for complex logic
+- Ensure all tests pass before submitting
 
-If this project helped you, please consider:
+## Testing
 
-<div align="center">
+Run the test suite:
 
-### ⭐ Star this repository
-
-[![GitHub stars](https://img.shields.io/github/stars/SENODROOM/React-App-Template?style=social)](https://github.com/SENODROOM/React-App-Template/stargazers)
-
-### 🍴 Fork and use it in your projects
-
-[![GitHub forks](https://img.shields.io/github/forks/SENODROOM/React-App-Template?style=social)](https://github.com/SENODROOM/React-App-Template/network/members)
-
-### 🐛 Report issues or suggest features
-
-[Create an Issue](https://github.com/SENODROOM/React-App-Template/issues)
-
-</div>
-
----
-
-## 👨‍💻 Author
-
-**Muhammad Saad Amin**
-
-Software Engineer passionate about building scalable web applications
-
-- 📧 Email: [l253045@lhr.nu.edu.pk](mailto:l253045@lhr.nu.edu.pk)
-- 📱 Phone: +92 329 7930375
-- 💼 LinkedIn: [Muhammad Saad Amin](https://www.linkedin.com/in/muhammad-saad-amin-24779622a/)
-- 🐙 GitHub: [@SENODROOM](https://github.com/SENODROOM)
-- 🌐 Portfolio: [muhammad-saad-amin.vercel.app](https://muhammad-saad-amin.vercel.app/)
-
----
-
-## 📝 License
-
-This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) file for details.
-
-```
-MIT License - you can use this freely in your projects!
+```bash
+npm test
+# or
+yarn test
 ```
 
+Run tests with coverage:
+
+```bash
+npm test -- --coverage
+# or
+yarn test --coverage
+```
+
+## Building for Production
+
+Create an optimized production build:
+
+```bash
+npm run build
+# or
+yarn build
+```
+
+The build artifacts will be stored in the `build/` directory.
+
+## Deployment
+
+### Deploy to GitHub Pages
+
+```bash
+npm run deploy
+```
+
+### Deploy to Netlify
+
+1. Connect your repository to Netlify
+2. Set build command: `npm run build`
+3. Set publish directory: `build`
+
+### Deploy to Vercel
+
+```bash
+vercel --prod
+```
+
+## Roadmap
+
+- [ ] Add scientific calculator mode
+- [ ] Implement calculation history export
+- [ ] Add theme customization
+- [ ] Support for complex numbers
+- [ ] Unit conversion features
+- [ ] Graph plotting capabilities
+
+## Known Issues
+
+Please check the [Issues](https://github.com/SENODROOM/CalcVoyager/issues) page for known bugs and feature requests.
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## Acknowledgments
+
+- Inspired by classic calculator designs
+- Built with modern web technologies
+- Thanks to all contributors who have helped improve CalcVoyager
+
+## Contact
+
+- **Author**: SENODROOM
+- **Repository**: [github.com/SENODROOM/CalcVoyager](https://github.com/SENODROOM/CalcVoyager)
+- **Issues**: [Report a bug or request a feature](https://github.com/SENODROOM/CalcVoyager/issues)
+
+## Screenshots
+
+*(Add screenshots of your application here)*
+
 ---
 
-<div align="center">
-
-### 🌟 If you found this helpful, consider giving it a star!
-
-Made with ❤️ by [Muhammad Saad Amin](https://github.com/SENODROOM)
-
-**Happy Coding! 🚀**
-
----
-
-[![LinkedIn](https://img.shields.io/badge/LinkedIn-Connect-blue?style=for-the-badge&logo=linkedin)](https://www.linkedin.com/in/muhammad-saad-amin-24779622a/)
-[![Portfolio](https://img.shields.io/badge/Portfolio-Visit-orange?style=for-the-badge&logo=vercel)](https://muhammad-saad-amin.vercel.app/)
-[![GitHub](https://img.shields.io/badge/GitHub-Follow-black?style=for-the-badge&logo=github)](https://github.com/SENODROOM)
-
-</div>
+Made with ❤️ by SENODROOM
