@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import * as math from 'mathjs';
-import { latexToMathJs } from '../utils/Latex Convertor/LatexToMathJs';
+import { latexToMathJs } from 'crosstex';
 
 // Homepage Component with Enhanced Multi-Variable Support
 const Homepage = () => {
